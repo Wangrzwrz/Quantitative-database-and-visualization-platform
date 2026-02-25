@@ -1,0 +1,14 @@
+app
+├── Quantlib                            # 量化前端平台        
+│   ├── pages                           # 页面
+│   │   ├── 1_Market overview.py        # 市场全景
+│   │   ├── 2_Sentiment radar.py        # 市场情绪
+│   │   ├── 3_Smart screener.py         # 因子选股
+│   │   ├── 4_Stock deepdive.py         # 个股查询
+│   │   ├── 5_Alpha lab.py              # 因子看板
+│   │   └── 6_Sector rotation.py        # 板块信息
+│   ├── main.py                         # 主文件
+│   ├── QuantDB.py                      # 数据库交互文件
+│   └── utils.py                        # 辅助函数
+├── structure.txt
+└── 量化前端平台可视化网页.html

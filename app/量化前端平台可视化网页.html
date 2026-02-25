@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantlib 模拟页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+
+        body { font-family: -apple-system, system-ui, sans-serif; }
+        .page-section { display: none; animation: fadeIn 0.3s ease; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .chart-svg { width: 100%; height: 100%; overflow: visible; }
+        .k-up { stroke: #ef4444; fill: #ef4444; } 
+        .k-down { stroke: #22c55e; fill: #22c55e; } 
+        .line-path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+
+        .treemap-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+            height: 100%;
+        }
+        .treemap-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            overflow: hidden;
+            position: relative;
+        }
+        .treemap-item:hover { opacity: 0.9; z-index: 10; transform: scale(1.02); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        .progress-bg { background-color: #e2e8f0; height: 6px; border-radius: 3px; width: 60px; display: inline-block; }
+        .progress-fill { height: 100%; border-radius: 3px; background-color: #cbd5e1; }
+
+        .stock-card { transition: all 0.2s; }
+        .stock-card:hover { transform: translateY(-2px); border-color: #93c5fd; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        .expander-content { transition: max-height 0.3s ease-out, opacity 0.3s ease-out; max-height: 2000px; opacity: 1; overflow: hidden; }
+        .expander-content.collapsed { max-height: 0; opacity: 0; }
+        .chevron { transition: transform 0.3s; }
+        .chevron.rotated { transform: rotate(-90deg); }
+
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #2563eb; cursor: pointer; margin-top: -6px; }
+
+        .tab-btn { border-bottom: 2px solid transparent; color: #64748b; }
+        .tab-btn.active { border-bottom: 2px solid #ef4444; color: #ef4444; font-weight: bold; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .alpha-card { background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen flex overflow-hidden">
+
+    <!-- 左侧导航栏 -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-10">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <span class="bg-blue-600 text-white p-1 rounded">Ql</span>
+                Quantlib
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">author: Wangrzwrz</p>
+        </div>
+
+        <nav class="p-4 space-y-1 flex-1 overflow-y-auto">
+            <button onclick="switchPage('market')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-blue-700 bg-blue-50 transition-colors" id="btn-market">
+                <span>🦅</span> 市场全景 (Overview)
+            </button>
+            <button onclick="switchPage('sentiment')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors" id="btn-sentiment">
+                <span>🔥</span> 情绪雷达 (Sentiment)
+            </button>
+            <button onclick="switchPage('screener')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors" id="btn-screener">
+                <span>🔍</span> 智能选股 (Screener)
+            </button>
+            <button onclick="switchPage('stock')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors" id="btn-stock">
+                <span>🧐</span> 个股深研 (Deep Dive)
+            </button>
+            <button onclick="switchPage('alpha')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors" id="btn-alpha">
+                <span>🧪</span> Alpha 实验室 (Lab)
+            </button>
+            <button onclick="switchPage('sector')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors" id="btn-sector">
+                <span>🎡</span> 行业轮动 (Rotation)
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50">
+            <div class="text-xs font-semibold text-slate-500 mb-2">📅 时间选择</div>
+            <input type="date" class="w-full border border-slate-300 rounded px-2 py-1 text-sm bg-white" value="2023-11-14">
+        </div>
+    </aside>
+
+    <!-- 右侧主内容 -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden">
+        <!-- 顶部通栏 -->
+        <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0">
+            <h2 id="page-title" class="text-lg font-bold text-slate-800">🦅 市场全景 (Market Overview)</h2>
+            <div class="flex gap-3">
+                <span class="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">数据状态: 模拟连接正常</span>
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">User</div>
+            </div>
+        </header>
+
+        <!-- 内容滚动区 -->
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <!-- 1. 市场全景页面 -->
+            <div id="page-market" class="page-section active space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="market-header-container"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2"><span>📊</span> 核心指数表现</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 divide-x divide-slate-100" id="index-container"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6" id="market-chart-container"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="market-sector-container"></div>
+            </div>
+
+            <!-- 2. 情绪雷达页面 -->
+            <div id="page-sentiment" class="page-section space-y-8">
+                <div class="flex items-center gap-2 mb-2"><h3 class="font-bold text-slate-700 text-lg">🌡️ 市场核心温控</h3></div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="sentiment-metrics"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 rounded-t-lg flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('limit-up-container', this)">
+                            <h3 class="font-bold text-slate-700 flex items-center gap-2">📋 完整涨停列表 <span class="text-xs font-normal text-slate-500">(封单降序)</span></h3><span class="text-slate-400 chevron text-sm">▼</span>
+                        </div>
+                        <div id="limit-up-container" class="expander-content h-[300px]"><div class="flex-1 overflow-auto h-full"><table class="w-full text-sm text-left"><thead class="bg-white text-slate-500 sticky top-0 z-10 shadow-sm text-xs"><tr><th class="px-4 py-2">时间</th><th class="px-4 py-2">名称</th><th class="px-4 py-2">板</th><th class="px-4 py-2">原因</th><th class="px-4 py-2 text-right">封单</th></tr></thead><tbody id="list-up-content" class="divide-y divide-slate-50 text-slate-700 text-xs"></tbody></table></div></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 rounded-t-lg flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('limit-down-container', this)">
+                            <h3 class="font-bold text-slate-700 flex items-center gap-2">📉 完整跌停列表 <span class="text-xs font-normal text-slate-500">(封单降序)</span></h3><span class="text-slate-400 chevron text-sm">▼</span>
+                        </div>
+                        <div id="limit-down-container" class="expander-content h-[300px]"><div class="flex-1 overflow-auto h-full"><table class="w-full text-sm text-left"><thead class="bg-white text-slate-500 sticky top-0 z-10 shadow-sm text-xs"><tr><th class="px-4 py-2">时间</th><th class="px-4 py-2">名称</th><th class="px-4 py-2">原因</th><th class="px-4 py-2 text-right">封单</th></tr></thead><tbody id="list-down-content" class="divide-y divide-slate-50 text-slate-700 text-xs"></tbody></table></div></div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-700 mb-6">🌪️ 题材热力深度 (Sector Depth)</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 h-96 bg-slate-50 border border-slate-100 rounded relative overflow-hidden" id="sentiment-treemap"></div>
+                        <div class="h-96 overflow-y-auto pl-2">
+                            <h4 class="text-sm font-bold text-slate-600 mb-3 border-b pb-2">💰 板块资金排行</h4>
+                            <div class="flex text-xs text-slate-400 mb-2 px-2"><span class="flex-1">板块</span><span class="w-20 text-right">总封单</span><span class="w-12 text-right">家数</span></div>
+                            <div id="sentiment-sector-rank" class="space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="sentiment-trend-box"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="sentiment-ladder-box"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="sentiment-down-ladder-box"></div>
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm" id="sentiment-seal-box"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="sentiment-broken-box"></div>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm" id="sentiment-factor-box"></div>
+            </div>
+
+            <!-- 3. 智能选股页面 -->
+            <div id="page-screener" class="page-section space-y-6">
+                <h3 class="font-bold text-slate-700 text-lg flex items-center gap-2">🛠️ 筛选条件</h3>
+                <div class="space-y-3" id="screener-filters"></div> 
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 border-t border-slate-200 pt-6">
+                    <div class="lg:col-span-4">
+                        <div class="flex justify-between items-end mb-4">
+                            <h3 class="font-bold text-slate-700 text-lg">🎯 筛选结果: <span id="res-count">2555</span> 只</h3>
+                            <div class="flex gap-4 items-center">
+                                <select class="text-sm border border-slate-300 rounded px-2 py-1 bg-white outline-none" onchange="runScreener()"><option>排序: 涨跌幅</option><option>排序: 市值</option><option>排序: PE</option></select>
+                                <label class="flex items-center text-sm text-slate-600"><input type="checkbox" class="mr-1" onchange="runScreener()"> 升序</label>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm"><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500 text-xs"><tr><th class="px-4 py-3">代码</th><th class="px-4 py-3">名称</th><th class="px-4 py-3">行业</th><th class="px-4 py-3 text-right">涨跌幅</th><th class="px-4 py-3 text-right">现价</th><th class="px-4 py-3 text-right">市值(亿)</th><th class="px-4 py-3 text-right">PE</th><th class="px-4 py-3 text-right">月涨幅</th><th class="px-4 py-3 text-right">连板</th><th class="px-4 py-3 text-right">ROE</th></tr></thead><tbody id="screener-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody></table></div></div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <h3 class="font-bold text-slate-700 text-lg mb-4">👉 深度分析</h3>
+                        <div id="screener-actions" class="space-y-2"></div>
+                        <div class="text-xs text-slate-400 mt-2 text-center">... 还有更多</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 个股深研页面 -->
+            <div id="page-stock" class="page-section space-y-6">
+                <!-- 顶部控制栏 -->
+                <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="flex flex-col">
+                            <label class="text-xs text-slate-500 mb-1">输入代码</label>
+                            <input type="text" value="000001.SZ" class="border border-slate-300 rounded px-2 py-1 text-sm w-32 font-mono" id="stock-code-input">
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-800" id="stock-name-display">平安银行</h1>
+                            <p class="text-xs text-slate-500" id="stock-info-display">银行 | 深圳</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex flex-col">
+                            <label class="text-xs text-slate-500 mb-1">开始日期</label>
+                            <input type="date" value="2024-11-14" class="border border-slate-300 rounded px-2 py-1 text-sm bg-white">
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-xs text-slate-500 mb-1">结束日期</label>
+                            <input type="date" value="2025-11-14" class="border border-slate-300 rounded px-2 py-1 text-sm bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表配置 -->
+                <div class="flex gap-4 items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-2 text-sm text-slate-600">
+                        <span class="font-bold">主图叠加:</span>
+                        <label><input type="checkbox" checked class="mr-1">MA</label>
+                        <label><input type="checkbox" class="mr-1">BOLL</label>
+                        <label><input type="checkbox" class="mr-1">涨停标记</label>
+                    </div>
+                    <div class="h-4 w-px bg-slate-300 mx-2"></div>
+                    <div class="flex items-center gap-2 text-sm text-slate-600">
+                        <span class="font-bold">副图指标:</span>
+                        <select class="border border-slate-300 rounded px-2 py-0.5 bg-white outline-none">
+                            <option>MACD</option><option>KDJ</option><option>RSI</option><option>Sentiment</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- K线主图容器 -->
+                <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm h-[600px] flex flex-col relative">
+                    <h3 class="font-bold text-slate-700 mb-2 text-sm flex justify-between">
+                        <span>平安银行 (Daily)</span>
+                        <span class="text-xs font-normal text-slate-400">Mock Data Visualization</span>
+                    </h3>
+                    <div class="flex-1 relative border border-slate-100 bg-slate-50 rounded overflow-hidden">
+                        <svg viewBox="0 0 800 500" preserveAspectRatio="none" class="chart-svg p-2" id="kline-svg">
+                            <!-- JS 绘制 -->
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 因子透视 (Factor Dashboard) -->
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-700 text-lg">📊 因子透视 (Factor Dashboard)</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">⏱️ 时间选择</span>
+                            <input type="range" class="w-32" disabled title="演示模式暂不可用">
+                        </div>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="flex gap-6 border-b border-slate-200 mb-4" id="factor-tabs">
+                        <button class="tab-btn active pb-2 text-sm" onclick="switchFactorTab(0)">💰 估值</button>
+                        <button class="tab-btn pb-2 text-sm" onclick="switchFactorTab(1)">📈 动量</button>
+                        <button class="tab-btn pb-2 text-sm" onclick="switchFactorTab(2)">🛠️ 技术</button>
+                        <button class="tab-btn pb-2 text-sm" onclick="switchFactorTab(3)">🔥 情绪</button>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div id="factor-content-0" class="tab-content active">
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div><div class="text-xs text-slate-500">PE (TTM)</div><div class="text-xl font-bold text-slate-800">5.3</div></div>
+                            <div><div class="text-xs text-slate-500">PB (LF)</div><div class="text-xl font-bold text-slate-800">0.51</div></div>
+                            <div><div class="text-xs text-slate-500">股息率</div><div class="text-xl font-bold text-slate-800">8.21%</div></div>
+                            <div><div class="text-xs text-slate-500">净利同比</div><div class="text-xl font-bold text-slate-800">2.1%</div></div>
+                        </div>
+                    </div>
+                    <div id="factor-content-1" class="tab-content">
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div><div class="text-xs text-slate-500">月涨幅</div><div class="text-xl font-bold text-red-500">+4.2%</div></div>
+                            <div><div class="text-xs text-slate-500">波动率</div><div class="text-xl font-bold text-slate-800">1.28</div></div>
+                            <div><div class="text-xs text-slate-500">价格分位</div><div class="text-xl font-bold text-slate-800">45%</div></div>
+                            <div><div class="text-xs text-slate-500">乖离率</div><div class="text-xl font-bold text-slate-800">1.5%</div></div>
+                        </div>
+                    </div>
+                    <div id="factor-content-2" class="tab-content">
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div><div class="text-xs text-slate-500">RSI (14)</div><div class="text-xl font-bold text-slate-800">58.2</div></div>
+                            <div><div class="text-xs text-slate-500">KDJ (J)</div><div class="text-xl font-bold text-slate-800">72.1</div></div>
+                            <div><div class="text-xs text-slate-500">CCI</div><div class="text-xl font-bold text-slate-800">105.3</div></div>
+                            <div><div class="text-xs text-slate-500">WR</div><div class="text-xl font-bold text-slate-800">-25.4</div></div>
+                        </div>
+                    </div>
+                    <div id="factor-content-3" class="tab-content">
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div><div class="text-xs text-slate-500">连板</div><div class="text-xl font-bold text-slate-800">0板</div></div>
+                            <div><div class="text-xs text-slate-500">封单</div><div class="text-xl font-bold text-slate-800">0万</div></div>
+                            <div><div class="text-xs text-slate-500">涨停</div><div class="text-xl font-bold text-slate-800">否</div></div>
+                            <div><div class="text-xs text-slate-500">主力</div><div class="text-xl font-bold text-red-500">+1.2亿</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基本面 & 同业对比 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-700 mb-4 text-sm">📋 基本面明细</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-50 text-slate-500"><tr><th class="px-2 py-1">日期</th><th class="px-2 py-1">PE</th><th class="px-2 py-1">PB</th><th class="px-2 py-1">总市值</th><th class="px-2 py-1">换手%</th></tr></thead>
+                                <tbody id="fund-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-700 mb-4 text-sm">🆚 同行业龙头对比 (Peer PK)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-50 text-slate-500"><tr><th class="px-2 py-1">代码</th><th class="px-2 py-1">名称</th><th class="px-2 py-1">市值(亿)</th><th class="px-2 py-1">PE</th><th class="px-2 py-1">涨幅</th><th class="px-2 py-1">ROE</th></tr></thead>
+                                <tbody id="peer-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 相似K线回溯 -->
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-700 mb-2">🔮 相似 K 线回溯 (History Mirror)</h3>
+                    <p class="text-xs text-slate-500 mb-4">逻辑：基于技术指标 (RSI, CCI, BIAS) 的欧氏距离，在全历史库中搜索形态最像当前股票的历史片段。</p>
+                    <div class="h-[300px] w-full border border-slate-100 bg-slate-50 rounded relative overflow-hidden">
+                        <svg viewBox="0 0 800 300" preserveAspectRatio="none" class="chart-svg p-4" id="history-svg">
+                            <line x1="400" y1="0" x2="400" y2="300" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1"/>
+                            <text x="405" y="20" font-size="10" fill="#64748b">当前观测点</text>
+                        </svg>
+                    </div>
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <h4 class="text-xs font-bold text-slate-600 mb-2">匹配详情列表：</h4>
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-50 text-slate-500"><tr><th class="px-2 py-1">代码</th><th class="px-2 py-1">匹配日期</th><th class="px-2 py-1">名称</th><th class="px-2 py-1">相似度距离</th></tr></thead>
+                            <tbody id="match-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Alpha 实验室页面 -->
+            <div id="page-alpha" class="page-section space-y-6">
+                <h2 class="text-2xl font-bold text-slate-800">🧪 Alpha 因子看板 (Factor Kanban)</h2>
+                <div class="flex gap-6 border-b border-slate-200 mt-4 mb-6">
+                    <button class="tab-btn active pb-2 text-sm font-medium" onclick="switchAlphaTab('kanban', this)">🛡️ 因子全景看板 (横向比对)</button>
+                    <button class="tab-btn pb-2 text-sm font-medium" onclick="switchAlphaTab('deep', this)">🔬 单因子深度研判 (纵向回测)</button>
+                </div>
+                <div id="alpha-kanban-view" class="space-y-6">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="md:w-1/4">
+                            <div class="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 mb-4">点击下方按钮开始扫描所有 101 个因子的表现。</div>
+                            <button class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow transition-colors flex justify-center items-center gap-2" onclick="renderAlphaKanban()"><span>🚀</span> 开始全量扫描</button>
+                        </div>
+                        <div class="md:w-3/4 bg-white border border-slate-200 rounded p-4 h-80 relative" id="alpha-ic-chart-container"><div class="text-center text-slate-400 mt-20">等待扫描指令...</div></div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 font-bold text-slate-700">📋 因子 IC 详细列表</div>
+                        <div class="h-64 overflow-y-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500 sticky top-0"><tr><th class="px-4 py-2">因子名称</th><th class="px-4 py-2 text-right">Rank IC (相关性)</th></tr></thead><tbody id="alpha-ic-list-body" class="divide-y divide-slate-50 text-slate-700"></tbody></table></div>
+                    </div>
+                </div>
+                <div id="alpha-deep-view" class="hidden space-y-8">
+                    <div class="w-64"><label class="text-sm font-bold text-slate-700 block mb-2">🎯 选择待分析因子</label><select class="w-full border border-slate-300 rounded p-2 text-sm bg-white" onchange="renderAlphaDeepDive(this.value)"><option value="alpha_001">alpha_001</option><option value="alpha_009">alpha_009</option><option value="alpha_101">alpha_101</option></select></div>
+                    <h3 class="font-bold text-slate-700">📈 因子稳定性回测 (Trend)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="alpha-card h-72 flex flex-col"><h4 class="text-xs font-bold text-slate-500 mb-2">每日 IC 走势</h4><div class="flex-1 relative overflow-hidden" id="alpha-daily-ic-chart"></div></div>
+                        <div class="alpha-card h-72 flex flex-col"><h4 class="text-xs font-bold text-slate-500 mb-2">累积 IC 曲线</h4><div class="flex-1 relative overflow-hidden" id="alpha-cum-ic-chart"></div></div>
+                    </div>
+                    <h3 class="font-bold text-slate-700">📊 当日分层收益 (Decile Analysis)</h3>
+                    <div class="alpha-card h-72 flex flex-col"><h4 class="text-xs font-bold text-slate-500 mb-2">分层平均涨幅</h4><div class="flex-1 relative overflow-hidden" id="alpha-decile-chart"></div></div>
+                    <h3 class="font-bold text-slate-700">🔭 因子个股透视</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><h4 class="font-bold text-sm text-slate-700 mb-2">🚀 Top 20</h4><div class="bg-white border border-slate-200 rounded overflow-hidden"><table class="w-full text-xs text-left"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-2">代码</th><th class="p-2">名称</th><th class="p-2 text-right">因子值</th><th class="p-2 text-right">涨幅</th></tr></thead><tbody id="alpha-top-stocks" class="divide-y divide-slate-50"></tbody></table></div></div>
+                        <div><h4 class="font-bold text-sm text-slate-700 mb-2">📉 Bottom 20</h4><div class="bg-white border border-slate-200 rounded overflow-hidden"><table class="w-full text-xs text-left"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-2">代码</th><th class="p-2">名称</th><th class="p-2 text-right">因子值</th><th class="p-2 text-right">涨幅</th></tr></thead><tbody id="alpha-bot-stocks" class="divide-y divide-slate-50"></tbody></table></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. 行业轮动页面 (重构版) -->
+            <div id="page-sector" class="page-section space-y-6">
+                <h2 class="text-2xl font-bold text-slate-800">🎡 行业轮动罗盘 (Sector Rotation)</h2>
+                <p class="text-sm text-slate-500"></p>
+
+                <!-- Sector Map Chart -->
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-700">🔭 行业四象限 (The Sector Map)</h3>
+                        <div class="text-xs text-slate-500 bg-slate-50 px-3 py-1 rounded border">X: 动量 | Y: 估值 | 大小: 成交 | 颜色: RSI</div>
+                    </div>
+                    <div class="relative h-[500px] border border-slate-100 bg-slate-50 rounded overflow-hidden" id="sector-map-container">
+                        <!-- SVG Bubble Chart -->
+                        <svg viewBox="0 0 800 500" preserveAspectRatio="none" class="chart-svg p-4" id="sector-bubble-chart">
+                            <!-- JS Generated -->
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <!-- Sector List -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col h-[800px]">
+                        <h3 class="font-bold text-slate-700 mb-4">📋 行业排行榜</h3>
+                        <div class="flex gap-2 mb-2">
+                            <select class="text-sm border border-slate-300 rounded w-full p-1 bg-white" id="sector-sort-select" onchange="renderSectorList()">
+                                <option value="chg">排序: 今日涨幅</option>
+                                <option value="amt">排序: 成交额</option>
+                                <option value="pe">排序: PE估值</option>
+                            </select>
+                        </div>
+                        <div class="flex-1 overflow-y-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-slate-500 sticky top-0">
+                                    <tr><th class="p-2">名称</th><th class="p-2 text-right">涨幅</th><th class="p-2 text-right">成交</th><th class="p-2 text-right">PE</th></tr>
+                                </thead>
+                                <tbody id="sector-rank-body" class="divide-y divide-slate-50 text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sector Detail -->
+                    <div class="lg:col-span-3 space-y-6">
+                        <!-- Detail Chart -->
+                        <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-700 mb-4">🔍 <span id="sec-detail-name">半导体</span> 板块深研</h3>
+                            <div class="h-64 border border-slate-100 bg-slate-50 rounded relative overflow-hidden">
+                                <svg viewBox="0 0 600 250" preserveAspectRatio="none" class="chart-svg p-2" id="sector-detail-chart">
+                                    <!-- JS Generated -->
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Constituents -->
+                        <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-700 mb-4">👑 核心龙头 (Top Constituents)</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="sector-cons-cards">
+                                <!-- JS Generated Cards -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-700', 'bg-blue-50');
+                btn.classList.add('text-slate-600');
+            });
+            const activeBtn = document.getElementById('btn-' + pageId);
+            activeBtn.classList.remove('text-slate-600');
+            activeBtn.classList.add('text-blue-700', 'bg-blue-50');
+
+            const titles = { 'market': '🦅 市场全景 (Market Overview)', 'sentiment': '🔥 情绪雷达 (Sentiment Radar)', 'screener': '🔍 智能多因子选股器 (Smart Screener)', 'stock': '🧐 个股全景深研 (Deep Dive)', 'alpha': '🧪 Alpha 实验室 (Factor Kanban)', 'sector': '🎡 行业轮动罗盘 (Sector Rotation)' };
+            document.getElementById('page-title').innerText = titles[pageId];
+
+            if (pageId === 'market') renderMarketPage();
+            if (pageId === 'sentiment') renderSentimentPage();
+            if (pageId === 'screener') renderScreenerPage();
+            if (pageId === 'stock') renderStockPage();
+            if (pageId === 'alpha') renderAlphaPage();
+            if (pageId === 'sector') renderSectorPage();
+        }
+
+        function toggleCollapse(contentId, headerElement) {
+            const content = document.getElementById(contentId);
+            const chevron = headerElement.querySelector('.chevron');
+            if (content.classList.contains('collapsed')) { content.classList.remove('collapsed'); chevron.classList.remove('rotated'); } 
+            else { content.classList.add('collapsed'); chevron.classList.add('rotated'); }
+        }
+        
+        function updateRangeLabel(id, text) { document.getElementById(id).innerText = text; }
+
+        // --- 1. 市场全景 ---
+        function renderMarketPage() {
+            renderIndices(); renderTrendChart(); renderDistChart(); renderTreemap(); renderSectorStocks();
+            
+            const header = document.getElementById('market-header-container');
+            if(header && header.innerHTML.trim() === "") {
+                header.innerHTML = `
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center"><div class="text-slate-500 text-sm font-medium">全A成交额</div><div class="flex items-baseline gap-2 mt-1"><span class="text-3xl font-bold text-slate-800">19525亿</span><span class="text-sm font-medium px-2 py-0.5 rounded bg-red-100 text-red-600">↓ -803亿</span></div></div>
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center"><div class="text-slate-500 text-sm font-medium">涨跌中位数</div><div class="flex items-baseline gap-2 mt-1"><span class="text-3xl font-bold text-green-600">-0.44%</span></div></div>
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center"><div class="text-slate-500 text-sm font-medium">涨跌家数</div><div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-slate-800">涨<span class="text-red-500">1907</span> / 跌<span class="text-green-500">3095</span></span></div><div class="mt-1"><span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">净 -1188.0</span></div></div>
+                `;
+            }
+            
+            const charts = document.getElementById('market-chart-container');
+            if(charts && charts.innerHTML.trim() === "") {
+                charts.innerHTML = `
+                    <div class="lg:col-span-3 bg-white p-6 rounded-lg border border-slate-200 shadow-sm h-96 flex flex-col"><h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2"><span>📈</span> 核心指数近期走势 (归一化)</h3><div class="flex-1 relative border border-slate-100 rounded bg-slate-50 p-2 overflow-hidden"><svg viewBox="0 0 600 200" preserveAspectRatio="none" class="chart-svg" id="trend-chart-svg"></svg></div></div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg border border-slate-200 shadow-sm h-96 flex flex-col"><h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2"><span>🌊</span> 涨跌分布</h3><div class="flex-1 flex items-end justify-between gap-1 px-2 pb-4" id="dist-chart-container"></div></div>
+                `;
+            }
+            
+            const sector = document.getElementById('market-sector-container');
+            if(sector && sector.innerHTML.trim() === "") {
+                sector.innerHTML = `
+                    <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2"><span>🔥</span> 行业板块深度透视</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6"><div class="lg:col-span-3 h-[500px] border border-slate-200 rounded overflow-hidden"><div class="h-full w-full treemap-grid" id="sector-treemap"></div></div><div class="lg:col-span-2 h-[500px] flex flex-col"><div class="mb-4"><label class="text-sm text-slate-500 font-medium block mb-1">🔍 选定板块</label><select id="sector-selector" onchange="renderSectorStocks()" class="w-full border border-slate-300 rounded p-2 text-sm bg-white"><option value="半导体">半导体</option><option value="燃气">燃气</option></select></div><h4 class="font-bold text-slate-700 mb-3"><span class="text-red-500">📌</span> <span id="selected-sector-name">半导体</span> 领涨个股</h4><div class="flex-1 overflow-y-auto border border-slate-100 rounded"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500 sticky top-0"><tr><th class="px-3 py-2">名称</th><th class="px-3 py-2 text-right">涨幅</th><th class="px-3 py-2 text-right">现价</th></tr></thead><tbody id="sector-stock-list" class="divide-y divide-slate-50 text-slate-700"></tbody></table></div></div></div>
+                `;
+            }
+        }
+        
+        function renderIndices() {
+            const indices = [ { name: '上证指数', price: 3990.49, pct: -0.97 }, { name: '深证成指', price: 13216.04, pct: -1.93 }, { name: '创业板指', price: 3111.51, pct: -2.82 }, { name: '科创50', price: 1361.23, pct: -2.72 }, { name: '上证50', price: 3038.43, pct: -1.15 }, { name: '中证500', price: 7235.46, pct: -1.63 }, { name: '中证1000', price: 7502.76, pct: -1.16 } ];
+            const container = document.getElementById('index-container');
+            if(!container) return; 
+            let html = '';
+            indices.forEach((idx, i) => {
+                const color = idx.pct >= 0 ? 'text-red-500' : 'text-green-600';
+                const bg = idx.pct >= 0 ? 'bg-red-50' : 'bg-green-50';
+                html += `<div class="flex flex-col ${i===0?'':'pl-4'}"><div class="text-xs text-slate-500 mb-1">${idx.name}</div><div class="text-lg font-bold text-slate-800">${idx.price.toFixed(2)}</div><div class="text-xs font-bold ${color} mt-1 w-max px-1.5 py-0.5 rounded ${bg}">${idx.pct>0?'+':''}${idx.pct}%</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderTrendChart() {
+            const svg = document.getElementById('trend-chart-svg');
+            if(!svg) return;
+            const colors = ['#e74c3c', '#3b82f6', '#a855f7']; 
+            let html = '<line x1="0" y1="100" x2="600" y2="100" stroke="#cbd5e1" stroke-dasharray="4" stroke-width="1"/>';
+            colors.forEach(c => {
+                let points = []; let y = 100;
+                for(let x=0; x<=600; x+=10) { y += (Math.random() - 0.5) * 15; y = Math.max(10, Math.min(190, y)); points.push(`${x},${y}`); }
+                html += `<polyline points="${points.join(' ')}" fill="none" stroke="${c}" class="line-path" />`;
+            });
+            svg.innerHTML = html;
+        }
+        function renderDistChart() {
+            const container = document.getElementById('dist-chart-container');
+            if(!container) return;
+            const counts = [30, 108, 387, 850, 1500, 1200, 400, 165, 67, 29];
+            const maxVal = Math.max(...counts);
+            const colors = ['#006400', '#008000', '#228B22', '#32CD32', '#90EE90', '#FFcccc', '#FF9999', '#FF6666', '#FF3333', '#FF0000'];
+            let html = '';
+            counts.forEach((val, i) => {
+                html += `<div class="flex-1 flex flex-col items-center justify-end h-full group"><div class="w-full mx-0.5 rounded-t transition-all hover:opacity-80" style="height: ${Math.max(4, (val/maxVal)*90)}%; background-color: ${colors[i]}"></div></div>`;
+            });
+            container.innerHTML = html;
+        }
+        function renderTreemap() {
+            const container = document.getElementById('sector-treemap');
+            if(!container) return;
+            const sectors = [{name:'证券',chg:-1.2,row:'span 2',col:'span 2',color:'#bbf7d0'},{name:'燃气',chg:3.5,row:'span 2',col:'span 1',color:'#ef4444'},{name:'半导体',chg:-2.1,row:'span 2',col:'span 1',color:'#4ade80'},{name:'煤炭',chg:1.8,row:'span 1',col:'span 1',color:'#fca5a5'},{name:'光伏',chg:1.2,row:'span 1',col:'span 1',color:'#fca5a5'},{name:'电池',chg:-0.5,row:'span 1',col:'span 1',color:'#d1fae5'},{name:'零售',chg:-0.2,row:'span 1',col:'span 1',color:'#ecfccb'},{name:'房地产',chg:0.8,row:'span 1',col:'span 2',color:'#fee2e2'},{name:'医药',chg:2.5,row:'span 1',col:'span 1',color:'#f87171'},{name:'中药',chg:1.1,row:'span 1',col:'span 1',color:'#fca5a5'}];
+            let html = '';
+            sectors.forEach(sec => { html += `<div class="treemap-item" onclick="selectSector('${sec.name}')" style="grid-row: ${sec.row}; grid-column: ${sec.col}; background-color: ${sec.color};"><div class="z-10 text-slate-800">${sec.name}</div><div class="text-[10px] text-slate-700 opacity-80">${sec.chg>0?'+':''}${sec.chg}%</div></div>`; });
+            container.innerHTML = html;
+        }
+        function selectSector(name) { document.getElementById('sector-selector').value = name; renderSectorStocks(); }
+        function renderSectorStocks() {
+            const el = document.getElementById('selected-sector-name');
+            if(!el) return;
+            el.innerText = document.getElementById('sector-selector').value;
+            const tbody = document.getElementById('sector-stock-list');
+            let html = '';
+            for(let i=0; i<10; i++) {
+                const isUp = Math.random()>0.4; const pct = isUp ? (Math.random()*10).toFixed(2) : (Math.random()*-10).toFixed(2);
+                html += `<tr class="hover:bg-blue-50 cursor-pointer"><td class="px-3 py-2"><div class="font-bold text-slate-700">成分股${String.fromCharCode(65+i)}</div></td><td class="px-3 py-2 text-right font-bold ${isUp?'text-red-500':'text-green-600'}">${pct}%</td><td class="px-3 py-2 text-right font-mono">${(10+Math.random()*50).toFixed(2)}</td></tr>`;
+            }
+            tbody.innerHTML = html;
+        }
+
+        // --- 2. 情绪雷达 ---
+        function renderSentimentPage() {
+            renderSentimentMetrics();
+            renderLimitLists();
+            renderSentimentTreemap();
+            renderSentimentTrend();
+            renderLadder(); 
+            renderLimitDownLadder();
+            renderSealRank(); 
+            renderBrokenPool(); 
+            renderSentimentFactors(); 
+
+            ['sentiment-trend-box', 'sentiment-ladder-box', 'sentiment-down-ladder-box', 'sentiment-seal-box', 'sentiment-broken-box', 'sentiment-factor-box'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el && el.innerHTML.trim() === '') {
+                    if(id === 'sentiment-trend-box') el.innerHTML = `<h3 class="font-bold text-slate-700 mb-4">📈 情绪周期 (红涨绿跌)</h3><div class="h-64 flex items-end justify-between gap-2 px-4 border-b border-slate-100 pb-2" id="sentiment-trend-chart"></div><div class="text-center text-xs text-slate-400 mt-2">近30日涨停/跌停家数趋势</div>`;
+                    if(id === 'sentiment-ladder-box') el.innerHTML = `<h3 class="font-bold text-slate-700 mb-6">🪜 涨停梯队 (Limit Up Ladder)</h3><div id="ladder-container" class="space-y-6"></div>`;
+                    if(id === 'sentiment-down-ladder-box') el.innerHTML = `<h3 class="font-bold text-slate-700 mb-6">📉 跌停梯队 (Limit Down Ladder)</h3><div id="ladder-down-container" class="space-y-6"></div>`;
+                    if(id === 'sentiment-seal-box') el.innerHTML = `<div class="p-4 border-b border-slate-100 bg-slate-50 rounded-t-lg flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors" onclick="toggleCollapse('seal-rank-container', this)"><h3 class="font-bold text-slate-700 flex items-center gap-2">💰 主力封单排行 (全量)</h3><span class="text-slate-400 chevron rotated text-sm">▼</span></div><div id="seal-rank-container" class="expander-content collapsed"><div class="p-4 max-h-[500px] overflow-y-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500"><tr><th class="px-4 py-2">名称</th><th class="px-4 py-2">封单金额</th><th class="px-4 py-2">板数</th><th class="px-4 py-2">时间</th></tr></thead><tbody id="seal-rank-body" class="divide-y divide-slate-100 text-slate-700"></tbody></table></div></div>`;
+                    if(id === 'sentiment-broken-box') el.innerHTML = `<h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">💣 炸板观测池</h3><div class="border rounded mb-4"><div class="p-3 bg-slate-50 text-sm font-bold text-slate-600 cursor-pointer flex justify-between items-center" onclick="toggleCollapse('broken-list-container', this)"><span>📊 炸板全列表</span><span class="text-slate-400 chevron rotated text-xs">▼</span></div><div id="broken-list-container" class="expander-content collapsed"><div class="max-h-64 overflow-y-auto"><table class="w-full text-xs text-left"><thead class="bg-white text-slate-500 sticky top-0"><tr><th class="px-3 py-2">名称</th><th class="px-3 py-2">首封</th><th class="px-3 py-2 text-right">收盘</th><th class="px-3 py-2 text-right">换手</th></tr></thead><tbody id="broken-list-body" class="divide-y divide-slate-50"></tbody></table></div></div></div><div class="border rounded"><div class="p-3 bg-slate-50 text-sm font-bold text-slate-600 cursor-pointer flex justify-between items-center" onclick="toggleCollapse('strong-broken-container', this)"><span>🔥 强承接精选 (收盘>5%)</span><span class="text-slate-400 chevron text-xs">▼</span></div><div id="strong-broken-container" class="expander-content p-4"><div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="broken-pool"></div></div></div>`;
+                    if(id === 'sentiment-factor-box') el.innerHTML = `<h3 class="font-bold text-slate-700 mb-6">💸 情绪因子数据 (Sentiment Factors)</h3><h4 class="text-sm font-bold text-slate-600 mb-4">主力净流入 Top 20</h4><div class="h-64 flex items-end gap-2 overflow-x-auto pb-2" id="sentiment-factors-chart"></div>`;
+                    
+                    if(id.includes('trend')) renderSentimentTrend();
+                    if(id.includes('ladder')) renderLadder();
+                    if(id.includes('down')) renderLimitDownLadder();
+                    if(id.includes('seal')) renderSealRank();
+                    if(id.includes('broken')) renderBrokenPool();
+                    if(id.includes('factor')) renderSentimentFactors();
+                }
+            });
+        }
+
+        function renderSentimentMetrics() {
+            const container = document.getElementById('sentiment-metrics');
+            if(!container) return;
+            const metrics = [
+                { label: "全市场成交", val: "19525亿", sub: "+803亿", color: "text-slate-800", subBg: "bg-red-50", subColor: "text-red-500" },
+                { label: "涨:跌", val: "1907:3095", sub: "净 -1188", color: "text-slate-800", subBg: "bg-green-50", subColor: "text-green-600" },
+                { label: "涨停家数", val: "89", sub: "+12", color: "text-red-500", subBg: "bg-red-50", subColor: "text-red-500" },
+                { label: "炸板率", val: "30%", sub: "炸板 39", color: "text-green-600", subBg: "bg-slate-100", subColor: "text-slate-500" },
+                { label: "跌停家数", val: "27", sub: "", color: "text-green-600", subBg: "bg-green-50", subColor: "text-green-600" },
+                { label: "昨涨停溢价", val: "1.86%", sub: "接力情绪", color: "text-red-500", subBg: "bg-red-50", subColor: "text-red-500" },
+            ];
+            let html = '';
+            metrics.forEach(m => {
+                html += `<div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between"><div class="text-slate-500 text-xs font-medium mb-1">${m.label}</div><div class="text-2xl font-bold ${m.color}">${m.val}</div><div class="mt-2"><span class="text-xs px-2 py-0.5 rounded ${m.subBg} ${m.subColor}">${m.sub}</span></div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderLimitLists() {
+            const upContent = document.getElementById('list-up-content');
+            if(upContent) {
+                let upHtml = '';
+                const upReasons = ['华为概念', 'CPO', '算力', '房地产', '芯片', '光刻机'];
+                for(let i=0; i<15; i++) {
+                    const money = (Math.random() * 2 + 0.5).toFixed(2) + '亿';
+                    upHtml += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-2 font-mono">09:${15+i}:00</td><td class="px-4 py-2 font-bold text-slate-700">龙头股份${i}</td><td class="px-4 py-2"><span class="bg-red-100 text-red-600 px-1.5 rounded text-[10px] font-bold">${Math.ceil(Math.random()*5)}板</span></td><td class="px-4 py-2 text-slate-500">${upReasons[i%6]}</td><td class="px-4 py-2 text-right font-mono text-red-500">${money}</td></tr>`;
+                }
+                upContent.innerHTML = upHtml;
+            }
+
+            const downContent = document.getElementById('list-down-content');
+            if(downContent) {
+                let downHtml = '';
+                for(let i=0; i<10; i++) {
+                    const money = (Math.random() * 5000 + 1000).toFixed(0) + '万';
+                    downHtml += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-2 font-mono">--:--</td><td class="px-4 py-2 font-bold text-slate-700">*ST跌停${i}</td><td class="px-4 py-2 text-slate-500">利空公告</td><td class="px-4 py-2 text-right font-mono text-green-600">${money}</td></tr>`;
+                }
+                downContent.innerHTML = downHtml;
+            }
+        }
+
+        function renderSentimentTreemap() {
+            const container = document.getElementById('sentiment-treemap');
+            const rankContainer = document.getElementById('sentiment-sector-rank');
+            if(!container || !rankContainer) return;
+
+            const data = [
+                { name: '华为产业链', val: 15.2, count: 12, col: 'span 2', row: 'span 2', color: '#7f1d1d' },
+                { name: '算力租赁', val: 8.5, count: 5, col: 'span 1', row: 'span 2', color: '#991b1b' },
+                { name: 'CPO', val: 6.3, count: 4, col: 'span 1', row: 'span 1', color: '#b91c1c' },
+                { name: '液冷服务器', val: 5.1, count: 3, col: 'span 1', row: 'span 1', color: '#dc2626' },
+                { name: '房地产', val: 4.8, count: 6, col: 'span 1', row: 'span 1', color: '#ef4444' },
+                { name: '证券', val: 3.2, count: 2, col: 'span 1', row: 'span 1', color: '#f87171' },
+                { name: '汽车', val: 2.9, count: 4, col: 'span 1', row: 'span 1', color: '#fca5a5' },
+                { name: '其他', val: 1.5, count: 10, col: 'span 1', row: 'span 1', color: '#fee2e2' },
+            ];
+            let htmlTree = '<div class="treemap-grid">';
+            let htmlRank = '';
+            data.forEach(d => {
+                htmlTree += `<div class="treemap-item" style="grid-column: ${d.col}; grid-row: ${d.row}; background-color: ${d.color};"><div class="z-10">${d.name}</div><div class="text-[10px] opacity-80">${d.val}亿 | ${d.count}家</div></div>`;
+                htmlRank += `<div class="flex items-center text-xs p-2 rounded hover:bg-slate-50"><span class="flex-1 font-medium text-slate-700">${d.name}</span><span class="w-20 text-right text-red-500 font-mono">${d.val}亿</span><span class="w-12 text-right text-slate-400">${d.count}家</span></div>`;
+            });
+            htmlTree += '</div>';
+            container.innerHTML = htmlTree;
+            rankContainer.innerHTML = htmlRank;
+        }
+
+        function renderSentimentTrend() {
+            const container = document.getElementById('sentiment-trend-chart');
+            if(!container) return;
+            let html = '';
+            for(let i=0; i<30; i++) {
+                const up = Math.floor(Math.random() * 80 + 20);
+                const down = Math.floor(Math.random() * 20 + 5);
+                html += `<div class="flex-1 flex flex-col items-center justify-center gap-0.5 h-full"><div class="w-full bg-red-400 rounded-t-sm" style="height: ${up}px"></div><div class="w-full bg-green-400 rounded-b-sm" style="height: ${down}px"></div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function renderLadder() {
+            const container = document.getElementById('ladder-container');
+            if(!container) return;
+            const groups = [
+                { h: 7, count: 1, stocks: ['捷荣技术'] },
+                { h: 5, count: 2, stocks: ['华映科技', '联合精密'] },
+                { h: 4, count: 3, stocks: ['立达信', '冠石科技', '通化金马'] },
+                { h: 3, count: 6, stocks: ['高斯贝尔', '京华激光', '东方嘉盛', '...'] },
+                { h: 2, count: 12, stocks: ['泉阳泉', '赛力斯', '武汉凡谷', '...'] },
+            ];
+            let html = '';
+            groups.forEach(g => {
+                let stockHtml = '';
+                g.stocks.forEach(s => {
+                    if (s === '...') return;
+                    stockHtml += `<div class="stock-card bg-slate-50 border border-slate-200 p-3 rounded cursor-pointer"><div class="flex justify-between items-start mb-1"><span class="text-xs text-slate-400 font-mono">09:3${Math.floor(Math.random()*9)}</span><span class="bg-red-100 text-red-600 text-[10px] px-1 rounded">连板</span></div><div class="font-bold text-slate-700 text-sm mb-1">${s}</div><div class="text-xs text-slate-500">封: ${(Math.random()*5+1).toFixed(1)}亿</div><div class="mt-2 text-[10px] text-slate-400 truncate">华为概念/消费电子</div></div>`;
+                });
+                html += `<div><div class="flex items-center gap-2 mb-3"><span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">${g.h}板</span><span class="text-sm font-bold text-slate-700">共 ${g.count} 只</span></div><div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">${stockHtml}</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderLimitDownLadder() {
+            const container = document.getElementById('ladder-down-container');
+            if(!container) return;
+            const groups = [
+                { h: 3, count: 1, stocks: ['*ST泛海'] },
+                { h: 2, count: 3, stocks: ['鸿博股份', '金帝股份', '我乐家居'] },
+            ];
+            let html = '';
+            groups.forEach(g => {
+                let stockHtml = '';
+                g.stocks.forEach(s => {
+                    stockHtml += `<div class="stock-card bg-slate-50 border border-slate-200 p-3 rounded cursor-pointer border-l-4 border-l-green-500"><div class="flex justify-between items-start mb-1"><span class="text-xs text-slate-400 font-mono">--:--</span><span class="bg-green-100 text-green-600 text-[10px] px-1 rounded">跌停</span></div><div class="font-bold text-slate-700 text-sm mb-1">${s}</div><div class="text-xs text-slate-500">封: ${(Math.random()*2).toFixed(1)}亿</div></div>`;
+                });
+                html += `<div><div class="flex items-center gap-2 mb-3"><span class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">${g.h}跌</span><span class="text-sm font-bold text-slate-700">共 ${g.count} 只</span></div><div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">${stockHtml}</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderSealRank() {
+            const tbody = document.getElementById('seal-rank-body');
+            if(!tbody) return;
+            let html = '';
+            const names = ['四川长虹', '赛力斯', '欧菲光', '张江高科', '华映科技', '常山北明', '拓维信息', '润和软件', '中芯国际', '科大讯飞'];
+            names.forEach((name, i) => {
+                const amount = (20 - i * 1.5 + Math.random()).toFixed(2);
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-2 font-bold text-slate-700">${name}</td>
+                        <td class="px-4 py-2 font-mono text-red-500">${amount}亿</td>
+                        <td class="px-4 py-2 text-xs"><span class="bg-red-100 text-red-600 px-1.5 py-0.5 rounded">${Math.max(1, 5-Math.floor(i/2))}板</span></td>
+                        <td class="px-4 py-2 text-xs text-slate-400">09:${30+i}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderBrokenPool() {
+            const listBody = document.getElementById('broken-list-body');
+            if(listBody) {
+                let listHtml = '';
+                const stocksList = ['万润科技', '翰宇药业', '光弘科技', '通化金马', '铭普光磁', '冠石科技', '立达信'];
+                stocksList.forEach(s => {
+                    const pct = (Math.random() * 8 + 1).toFixed(2);
+                    listHtml += `<tr class="hover:bg-slate-50"><td class="px-3 py-2 font-medium">${s}</td><td class="px-3 py-2 text-slate-400">09:42</td><td class="px-3 py-2 text-right text-red-500 font-bold">+${pct}%</td><td class="px-3 py-2 text-right text-slate-500">${(Math.random()*15+5).toFixed(1)}%</td></tr>`;
+                });
+                listBody.innerHTML = listHtml;
+            }
+
+            const container = document.getElementById('broken-pool');
+            if(container) {
+                let html = '';
+                const stocks = ['赛力斯', '欧菲光', '常山北明', '拓维信息', '四川长虹', '润和软件', '张江高科'];
+                stocks.forEach(s => {
+                    html += `<div class="stock-card bg-white border border-slate-200 p-3 rounded flex flex-col justify-between h-24 cursor-pointer"><div><div class="font-bold text-slate-700">${s}</div><div class="text-xs text-slate-400 mt-0.5">华为产业链</div></div><div class="flex justify-between items-end"><span class="text-red-500 font-bold text-sm">+7.${Math.floor(Math.random()*9)}%</span><button class="text-[10px] bg-slate-100 px-2 py-1 rounded hover:bg-slate-200">查看</button></div></div>`;
+                });
+                container.innerHTML = html;
+            }
+        }
+
+        function renderSentimentFactors() {
+            const container = document.getElementById('sentiment-factors-chart');
+            if(!container) return;
+            const stocks = ['赛力斯', '欧菲光', '四川长虹', '江淮汽车', '长安汽车', '科大讯飞', '中际旭创', '工业富联', '比亚迪', '宁德时代', '贵州茅台', '五粮液', '招商银行', '中国平安', '中信证券', '东方财富', '紫金矿业', '万华化学', '立讯精密', '迈瑞医疗'];
+            let html = '';
+            stocks.forEach((s, i) => {
+                const flow = 20 - i * 0.8 + Math.random();
+                const heightPct = (flow / 25) * 100;
+                html += `
+                    <div class="flex-shrink-0 w-16 flex flex-col items-center justify-end h-full group">
+                        <span class="text-[10px] text-red-500 font-bold mb-1 opacity-0 group-hover:opacity-100 transition-opacity">+${flow.toFixed(1)}亿</span>
+                        <div class="w-8 bg-red-500 rounded-t hover:opacity-80 transition-opacity" style="height: ${heightPct}%"></div>
+                        <span class="text-[10px] text-slate-600 mt-2 truncate w-full text-center" title="${s}">${s}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // --- 3. 智能选股 ---
+        function renderScreenerPage() {
+            renderScreenerFilters();
+            const data = generateScreenerData();
+            renderScreenerTable(data);
+            renderScreenerActions(data);
+        }
+        
+        function runScreener() {
+            renderScreenerPage();
+        }
+
+        function renderScreenerFilters() {
+            const c = document.getElementById('screener-filters');
+            if(!c || c.innerHTML.trim() !== '') return;
+            
+            c.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden"><div class="p-4 bg-slate-50 flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('filter-fund', this)"><span class="font-bold text-slate-700 text-sm">💰 基本面筛选 (市值/估值/成长)</span><span class="text-slate-400 chevron text-xs">▼</span></div><div id="filter-fund" class="expander-content p-6 border-t border-slate-100"><div class="grid grid-cols-1 md:grid-cols-4 gap-6"><div><label class="text-xs text-slate-500 block mb-2">总市值 (亿): <span id="val-mv">50 - 5000</span></label><input type="range" min="10" max="5000" value="50" class="w-full" oninput="updateRangeLabel('val-mv', this.value + ' - 5000')"></div><div><label class="text-xs text-slate-500 block mb-2">PE (TTM) 范围: <span id="val-pe">0 - 80</span></label><input type="range" min="0" max="200" value="80" class="w-full" oninput="updateRangeLabel('val-pe', '0 - ' + this.value)"></div><div><label class="text-xs text-slate-500 block mb-2">ROE (TTM) > %</label><input type="number" value="0.0" step="1.0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div><label class="text-xs text-slate-500 block mb-2">净利增长率 (YoY) > %</label><input type="number" value="-100.0" step="10.0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div></div></div></div>
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden"><div class="p-4 bg-slate-50 flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('filter-tech', this)"><span class="font-bold text-slate-700 text-sm">📈 技术面筛选 (趋势/强弱)</span><span class="text-slate-400 chevron rotated text-xs">▼</span></div><div id="filter-tech" class="expander-content collapsed p-6 border-t border-slate-100"><div class="grid grid-cols-1 md:grid-cols-4 gap-6"><div><label class="text-xs text-slate-500 block mb-2">今日涨跌幅 (%): <span id="val-pct">-5.0 - 10.0</span></label><input type="range" min="-20" max="20" value="10" class="w-full"></div><div><label class="text-xs text-slate-500 block mb-2">换手率 > %</label><input type="number" value="0.0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div><label class="text-xs text-slate-500 block mb-2">RSI (14) ></label><input type="number" value="0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div class="flex items-center pt-6"><input type="checkbox" id="chk-ma" class="mr-2"><label for="chk-ma" class="text-sm text-slate-700">均线多头排列 (MA5>20>60)</label></div></div></div></div>
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden"><div class="p-4 bg-slate-50 flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('filter-mom', this)"><span class="font-bold text-slate-700 text-sm">🚀 动量与风险 (Momentum)</span><span class="text-slate-400 chevron rotated text-xs">▼</span></div><div id="filter-mom" class="expander-content collapsed p-6 border-t border-slate-100"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label class="text-xs text-slate-500 block mb-2">20日动量 (月涨幅%) ></label><input type="number" value="-20.0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div><label class="text-xs text-slate-500 block mb-2">20日波动率 <</label><input type="number" value="100.0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div></div></div></div>
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden"><div class="p-4 bg-slate-50 flex justify-between items-center cursor-pointer hover:bg-slate-100" onclick="toggleCollapse('filter-sent', this)"><span class="font-bold text-slate-700 text-sm">🔥 情绪与资金 (Sentiment)</span><span class="text-slate-400 chevron rotated text-xs">▼</span></div><div id="filter-sent" class="expander-content collapsed p-6 border-t border-slate-100"><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><label class="text-xs text-slate-500 block mb-2">最小连板数 (Streak)</label><input type="number" value="0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div><label class="text-xs text-slate-500 block mb-2">封单金额 > (万)</label><input type="number" value="0" class="w-full border border-slate-300 rounded px-2 py-1 text-sm"></div><div class="flex items-center pt-6"><input type="checkbox" id="chk-zt" class="mr-2"><label for="chk-zt" class="text-sm text-slate-700">只看涨停股 (Limit Up)</label></div></div></div></div>
+            `;
+        }
+
+        function generateScreenerData() {
+            const data = [];
+            const industries = ['纺织', '化工原料', '综合类', '供气供热', '半导体', '软件服务', '医药', '汽车'];
+            const names = ['真爱美家', '建业股份', '联化科技', '石大胜华', '粤桂股份', '孚日股份', '群羊控股', '安凯客车', '新华制药', '常山北明', '四川长虹', '欧菲光'];
+            for(let i=0; i<15; i++) {
+                const isUp = Math.random() > 0.3;
+                const pct = isUp ? (Math.random() > 0.8 ? 10.00 : (Math.random()*9).toFixed(2)) : (Math.random()*-5).toFixed(2);
+                data.push({
+                    code: `00${2000+i}.SZ`, name: names[i % names.length] + (i>names.length?'A':''), industry: industries[i % industries.length],
+                    pct: Number(pct), price: (10 + Math.random() * 40).toFixed(2), mv: (20 + Math.random() * 200).toFixed(1),
+                    pe: (10 + Math.random() * 80).toFixed(1), mom: (Math.random() * 20 - 5).toFixed(1),
+                    streak: pct >= 9.9 ? Math.ceil(Math.random() * 3) : 0, roe: (Math.random() * 15).toFixed(1)
+                });
+            }
+            return data.sort((a,b) => b.pct - a.pct);
+        }
+
+        function renderScreenerTable(data) {
+            const tbody = document.getElementById('screener-table-body');
+            let html = '';
+            data.forEach(row => {
+                const color = row.pct > 0 ? 'text-red-500' : (row.pct < 0 ? 'text-green-600' : 'text-slate-700');
+                const pctStr = row.pct > 0 ? `+${row.pct.toFixed(2)}%` : `${row.pct.toFixed(2)}%`;
+                html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-3 font-mono text-slate-500">${row.code}</td><td class="px-4 py-3 font-bold text-slate-700">${row.name}</td><td class="px-4 py-3 text-slate-600">${row.industry}</td><td class="px-4 py-3 text-right font-bold ${color}">${pctStr}</td><td class="px-4 py-3 text-right font-mono">${row.price}</td><td class="px-4 py-3 text-right text-slate-600">${row.mv}</td><td class="px-4 py-3 text-right text-slate-600">${row.pe}</td><td class="px-4 py-3 text-right ${row.mom>0?'text-red-500':'text-green-600'}">${row.mom}%</td><td class="px-4 py-3 text-right">${row.streak > 0 ? `<span class="bg-red-100 text-red-600 px-1.5 rounded text-xs">${row.streak}</span>` : '0'}</td><td class="px-4 py-3 text-right text-slate-600">${row.roe}</td></tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('res-count').innerText = Math.floor(Math.random() * 100 + 2500);
+        }
+
+        function renderScreenerActions(data) {
+            const container = document.getElementById('screener-actions');
+            let html = '';
+            data.slice(0, 10).forEach(row => { html += `<button class="w-full bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 py-1.5 rounded text-sm transition-colors shadow-sm text-left px-3">深研 ${row.name}</button>`; });
+            container.innerHTML = html;
+        }
+
+        // --- 4. 个股深研 ---
+        function renderStockPage() {
+            renderKlineChart(); renderFundamentalsTable(); renderPeerTable(); renderHistoryMirror();
+        }
+
+        function switchFactorTab(index) {
+            const btns = document.querySelectorAll('#factor-tabs .tab-btn');
+            btns.forEach((btn, i) => { if (i === index) btn.classList.add('active'); else btn.classList.remove('active'); });
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach((content, i) => { if (i === index) content.classList.add('active'); else content.classList.remove('active'); });
+        }
+
+        function renderKlineChart() {
+            const svg = document.getElementById('kline-svg');
+            const W = 800, H = 500;
+            let html = `<line x1="0" y1="300" x2="800" y2="300" stroke="#e2e8f0" stroke-width="1"/><line x1="0" y1="400" x2="800" y2="400" stroke="#e2e8f0" stroke-width="1"/>`;
+            let ma5 = "", ma20 = "", ma60 = "", macdPath = "";
+            for(let i=0; i<60; i++) {
+                const x = i * (W/60) + 5; const w = (W/60) * 0.6;
+                const open = 150 + Math.random() * 50; const close = open + (Math.random() * 20 - 10);
+                const high = Math.max(open, close) + Math.random() * 10; const low = Math.min(open, close) - Math.random() * 10;
+                const mapY = (p) => 280 - (p - 100) * 1.8;
+                const isUp = close > open; const color = isUp ? '#ef4444' : '#22c55e';
+                html += `<line x1="${x+w/2}" y1="${mapY(high)}" x2="${x+w/2}" y2="${mapY(low)}" stroke="${color}" /><rect x="${x}" y="${mapY(Math.max(open, close))}" width="${w}" height="${Math.abs(mapY(open)-mapY(close)) || 1}" fill="${color}" />`;
+                if (i > 0) { ma5 += `${x+w/2},${mapY(close*1.02)} `; ma20 += `${x+w/2},${mapY(close*0.95)} `; ma60 += `${x+w/2},${mapY(close*0.9)} `; } 
+                else { ma5 = `M ${x+w/2},${mapY(close*1.02)} L `; ma20 = `M ${x+w/2},${mapY(close*0.95)} L `; ma60 = `M ${x+w/2},${mapY(close*0.9)} L `; }
+                const volHeight = Math.random() * 80; html += `<rect x="${x}" y="${400-volHeight}" width="${w}" height="${volHeight}" fill="${color}" />`;
+                const macdVal = Math.random() * 40 - 20; const macdColor = macdVal > 0 ? '#ef4444' : '#22c55e'; html += `<rect x="${x}" y="${450 - (macdVal>0?macdVal:0)}" width="${w}" height="${Math.abs(macdVal)}" fill="${macdColor}" />`;
+                const diff = macdVal * 0.8; if(i===0) macdPath = `M ${x+w/2},${450-diff} L `; else macdPath += `${x+w/2},${450-diff} `;
+            }
+            html += `<path d="${ma5}" stroke="#fbbf24" stroke-width="1" fill="none" /><path d="${ma20}" stroke="#a855f7" stroke-width="1" fill="none" /><path d="${ma60}" stroke="#3b82f6" stroke-width="1" fill="none" /><path d="${macdPath}" stroke="#333" stroke-width="1" fill="none" />`;
+            svg.innerHTML = html;
+        }
+
+        function renderFundamentalsTable() {
+            const tbody = document.getElementById('fund-table-body');
+            let html = '';
+            for(let i=0; i<8; i++) { html += `<tr class="hover:bg-slate-50"><td class="px-2 py-1 font-mono text-slate-500">2025-11-${14-i}</td><td class="px-2 py-1">5.3</td><td class="px-2 py-1">0.51</td><td class="px-2 py-1 font-mono">¥2280亿</td><td class="px-2 py-1">0.7%</td></tr>`; }
+            tbody.innerHTML = html;
+        }
+
+        function renderPeerTable() {
+            const tbody = document.getElementById('peer-table-body');
+            const peers = [ {c:'000001.SZ', n:'平安银行', m:2280, p:5.3, chg:0.43, r:0.1, self:true}, {c:'600036.SH', n:'招商银行', m:8000, p:7.3, chg:0.09, r:0.1, self:false}, {c:'601166.SH', n:'兴业银行', m:3500, p:5.9, chg:1.50, r:0.1, self:false}, {c:'600000.SH', n:'浦发银行', m:2800, p:7.9, chg:-0.34, r:0.1, self:false} ];
+            let html = '';
+            peers.forEach(p => { const bg = p.self ? 'bg-red-50' : 'hover:bg-slate-50'; html += `<tr class="${bg} transition-colors"><td class="px-2 py-1 font-mono text-slate-500">${p.c}</td><td class="px-2 py-1 font-bold text-slate-700">${p.n}</td><td class="px-2 py-1">${p.m}</td><td class="px-2 py-1">${p.p}</td><td class="px-2 py-1 ${p.chg>0?'text-red-500':'text-green-600'}">${p.chg}%</td><td class="px-2 py-1">${p.r}</td></tr>`; });
+            tbody.innerHTML = html;
+        }
+
+        function renderHistoryMirror() {
+            const svg = document.getElementById('history-svg');
+            const table = document.getElementById('match-table-body');
+            const colors = ['#e74c3c', '#3498db', '#f1c40f'];
+            let svgContent = `<line x1="400" y1="0" x2="400" y2="300" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1"/><text x="405" y="20" font-size="10" fill="#64748b">当前观测点</text>`;
+            let currPath = "M ";
+            for(let i=0; i<11; i++) { const x = i * 40; const y = 150 + (Math.random()-0.5)*50; currPath += `${x},${y} L `; }
+            currPath = currPath.slice(0, -3);
+            svgContent += `<path d="${currPath}" stroke="black" stroke-width="3" fill="none" />`;
+            for(let j=0; j<3; j++) { let path = "M "; let y = 150; for(let i=0; i<30; i++) { const x = i * 40; y += (Math.random()-0.5)*30; path += `${x},${y} L `; } path = path.slice(0, -3); svgContent += `<path d="${path}" stroke="${colors[j]}" stroke-width="2" stroke-dasharray="4" fill="none" opacity="0.7" />`; }
+            svg.innerHTML = svgContent;
+            const matches = [ {c:'000068.SZ', d:'2003-10-14', n:'华控赛格', dist:0.0744}, {c:'600085.SH', d:'2003-10-29', n:'同仁堂', dist:0.0798}, {c:'000589.SZ', d:'2025-05-12', n:'贵州轮胎', dist:0.0927} ];
+            let tblHtml = ''; matches.forEach(m => { tblHtml += `<tr class="hover:bg-slate-50"><td class="px-2 py-1 font-mono">${m.c}</td><td class="px-2 py-1 text-slate-500">${m.d}</td><td class="px-2 py-1 font-bold">${m.n}</td><td class="px-2 py-1 font-mono">${m.dist}</td></tr>`; });
+            table.innerHTML = tblHtml;
+        }
+
+        // --- 5. Alpha 实验室 ---
+        function renderAlphaPage() {
+            renderAlphaKanban(); 
+        }
+
+        function switchAlphaTab(mode, btn) {
+            const btns = btn.parentElement.querySelectorAll('button');
+            btns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const kanban = document.getElementById('alpha-kanban-view');
+            const deep = document.getElementById('alpha-deep-view');
+            if(mode === 'kanban') {
+                kanban.classList.remove('hidden');
+                deep.classList.add('hidden');
+                renderAlphaKanban();
+            } else {
+                kanban.classList.add('hidden');
+                deep.classList.remove('hidden');
+                renderAlphaDeepDive('alpha_001');
+            }
+        }
+
+        function renderAlphaKanban() {
+            // Static Chart Container (SVG) - Fix layout shift
+            const chartContainer = document.getElementById('alpha-ic-chart-container');
+            if(chartContainer) {
+                let chartHtml = `
+                    <h4 class="text-xs font-bold text-slate-500 mb-2 text-center">今日 IC 排行榜 (Top 10 Positive vs Negative)</h4>
+                    <div class="h-full w-full flex items-center justify-center p-2">
+                        <svg viewBox="0 0 800 250" preserveAspectRatio="none" class="w-full h-full" style="max-height: 100%;">
+                            <!-- Axis -->
+                            <line x1="0" y1="125" x2="800" y2="125" stroke="#cbd5e1" stroke-width="1" />
+                            
+                            <!-- Positive Bars (Red) -->
+                            <rect x="40"  y="25"  width="30" height="100" fill="#ef4444" rx="2" /><text x="55" y="20" font-size="12" text-anchor="middle" fill="#64748b">α101</text>
+                            <rect x="80"  y="45"  width="30" height="80"  fill="#ef4444" rx="2" /><text x="95" y="40" font-size="12" text-anchor="middle" fill="#64748b">α005</text>
+                            <rect x="120" y="65"  width="30" height="60"  fill="#ef4444" rx="2" />
+                            <rect x="160" y="75"  width="30" height="50"  fill="#ef4444" rx="2" />
+                            <rect x="200" y="85"  width="30" height="40"  fill="#ef4444" rx="2" />
+                            <rect x="240" y="95"  width="30" height="30"  fill="#ef4444" rx="2" />
+                            <rect x="280" y="105" width="30" height="20"  fill="#ef4444" rx="2" />
+                            <rect x="320" y="115" width="30" height="10"  fill="#ef4444" rx="2" />
+                            
+                            <!-- Negative Bars (Green) -->
+                            <rect x="440" y="125" width="30" height="100" fill="#22c55e" rx="2" /><text x="455" y="240" font-size="12" text-anchor="middle" fill="#64748b">α022</text>
+                            <rect x="480" y="125" width="30" height="80"  fill="#22c55e" rx="2" /><text x="495" y="220" font-size="12" text-anchor="middle" fill="#64748b">α099</text>
+                            <rect x="520" y="125" width="30" height="70"  fill="#22c55e" rx="2" />
+                            <rect x="560" y="125" width="30" height="60"  fill="#22c55e" rx="2" />
+                            <rect x="600" y="125" width="30" height="50"  fill="#22c55e" rx="2" />
+                            <rect x="640" y="125" width="30" height="40"  fill="#22c55e" rx="2" />
+                            <rect x="680" y="125" width="30" height="30"  fill="#22c55e" rx="2" />
+                            <rect x="720" y="125" width="30" height="20"  fill="#22c55e" rx="2" />
+                        </svg>
+                    </div>
+                `;
+                chartContainer.innerHTML = chartHtml;
+            }
+
+            // Static List
+            const listBody = document.getElementById('alpha-ic-list-body');
+            if(listBody) {
+                let listHtml = '';
+                const staticData = [
+                    {n:'alpha_101', v:0.1822}, {n:'alpha_022', v:-0.1755}, {n:'alpha_005', v:0.1533}, 
+                    {n:'alpha_099', v:-0.1421}, {n:'alpha_033', v:0.1102}, {n:'alpha_012', v:-0.1005},
+                    {n:'alpha_088', v:0.0954}, {n:'alpha_077', v:-0.0888}, {n:'alpha_001', v:0.0765}
+                ];
+                staticData.forEach(a => { 
+                    listHtml += `<tr class="hover:bg-slate-50"><td class="px-4 py-2 font-mono text-slate-600">${a.n}</td><td class="px-4 py-2 text-right font-bold ${a.v>0?'text-red-500':'text-green-600'}">${a.v}</td></tr>`; 
+                });
+                for(let i=10; i<25; i++) {
+                     const v = (0.05 - i*0.002).toFixed(4);
+                     listHtml += `<tr class="hover:bg-slate-50"><td class="px-4 py-2 font-mono text-slate-600">alpha_0${i}</td><td class="px-4 py-2 text-right font-bold text-slate-400">${v}</td></tr>`; 
+                }
+                listBody.innerHTML = listHtml;
+            }
+        }
+
+        function renderAlphaDeepDive(alphaName) {
+            document.querySelectorAll('.target-alpha-name').forEach(el => el.innerText = alphaName);
+            const dailyChart = document.getElementById('alpha-daily-ic-chart');
+            if(dailyChart) {
+                let html = '<div class="flex h-full items-end gap-1 px-2">';
+                for(let i=0; i<30; i++) { const val = Math.random() - 0.4; const h = Math.abs(val) * 100; const color = val > 0 ? 'bg-red-500' : 'bg-green-500'; html += `<div class="${color} flex-1 rounded-sm" style="height:${h}%"></div>`; }
+                html += '</div>'; dailyChart.innerHTML = html;
+            }
+            const cumChart = document.getElementById('alpha-cum-ic-chart');
+            if(cumChart) {
+                let points = "0,100 "; let y = 100; for(let i=1; i<30; i++) { y -= (Math.random()-0.4) * 10; points += `${i*10},${y} `; }
+                cumChart.innerHTML = `<svg viewBox="0 0 300 200" preserveAspectRatio="none" class="chart-svg"><polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="2"/></svg>`;
+            }
+            const decileChart = document.getElementById('alpha-decile-chart');
+            if(decileChart) {
+                let html = '<div class="flex h-full items-end gap-2 px-4">';
+                for(let i=0; i<10; i++) { const val = (i - 4.5) * 10 + (Math.random()*10); const color = val > 0 ? 'bg-red-500' : 'bg-green-500'; html += `<div class="flex-1 bg-slate-200 h-full relative"><div class="${color} absolute w-full bottom-0 left-0" style="height:${Math.abs(i-5)*10+10}%"></div></div>`; }
+                html += '</div>'; decileChart.innerHTML = html;
+            }
+            const renderTable = (id, sortAsc) => {
+                const tbody = document.getElementById(id);
+                if(!tbody) return;
+                let html = '';
+                for(let i=0; i<10; i++) { const val = sortAsc ? (-0.5 + i*0.01) : (0.5 - i*0.01); html += `<tr class="hover:bg-slate-50"><td class="p-2 font-mono">0000${i}</td><td class="p-2">股票${String.fromCharCode(65+i)}</td><td class="p-2 text-right font-mono">${val.toFixed(4)}</td><td class="p-2 text-right ${Math.random()>0.5?'text-red-500':'text-green-500'}">${(Math.random()*10-5).toFixed(2)}%</td></tr>`; }
+                tbody.innerHTML = html;
+            };
+            renderTable('alpha-top-stocks', false); renderTable('alpha-bot-stocks', true);
+        }
+
+        // --- 6. 行业轮动 ---
+        function renderSectorPage() {
+            renderSectorMap();
+            renderSectorList();
+            renderSectorDetail('半导体'); // Default
+        }
+
+        function renderSectorMap() {
+            const svg = document.getElementById('sector-bubble-chart');
+            if(!svg) return;
+            
+            // X: Momentum (0-100%), Y: PE (0-100), Size: Amt (Radius)
+            // SVG 800x500
+            // Axes
+            let html = `
+                <line x1="50" y1="450" x2="750" y2="450" stroke="#94a3b8" stroke-width="1" />
+                <line x1="50" y1="50" x2="50" y2="450" stroke="#94a3b8" stroke-width="1" />
+                <text x="750" y="470" font-size="10" text-anchor="end" fill="#64748b">动量 (Momentum)</text>
+                <text x="10" y="50" font-size="10" transform="rotate(-90 10,50)" fill="#64748b">估值 (PE)</text>
+                <line x1="50" y1="250" x2="750" y2="250" stroke="#cbd5e1" stroke-dasharray="4" />
+                <line x1="400" y1="50" x2="400" y2="450" stroke="#cbd5e1" stroke-dasharray="4" />
+            `;
+            
+            const sectors = ['半导体','白酒','证券','银行','光伏','电池','煤炭','房地产','医药','中药','零售','燃气','电力','军工','农业','传媒','游戏','通信','计算机','软件'];
+            
+            sectors.forEach(sec => {
+                const x = 50 + Math.random() * 700; // 动量
+                const y = 450 - Math.random() * 400; // PE (y轴反向)
+                const r = 5 + Math.random() * 20; // 成交额
+                const rsi = Math.random() * 100;
+                const color = rsi > 70 ? '#ef4444' : (rsi < 30 ? '#3b82f6' : '#fbbf24');
+                const opacity = 0.7;
+                
+                html += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" opacity="${opacity}" stroke="white" stroke-width="1"><title>${sec}\nPE: ${(450-y)/4}\nMOM: ${(x-50)/7}</title></circle>`;
+                html += `<text x="${x}" y="${y}" font-size="8" text-anchor="middle" fill="#333" dy="3">${sec}</text>`;
+            });
+            
+            svg.innerHTML = html;
+        }
+
+        function renderSectorList() {
+            const tbody = document.getElementById('sector-rank-body');
+            if(!tbody) return;
+            
+            const sectors = ['半导体','白酒','证券','银行','光伏','电池','煤炭','房地产','医药','中药','零售','燃气','电力','军工','农业'];
+            let html = '';
+            
+            sectors.forEach(sec => {
+                const pct = (Math.random() * 6 - 3).toFixed(2);
+                const color = pct > 0 ? 'text-red-500' : 'text-green-600';
+                const amt = (Math.random() * 100 + 10).toFixed(1);
+                const pe = (Math.random() * 60 + 5).toFixed(1);
+                
+                html += `
+                    <tr class="hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0" onclick="renderSectorDetail('${sec}')">
+                        <td class="p-2 font-bold text-slate-700">${sec}</td>
+                        <td class="p-2 text-right font-bold ${color}">${pct}%</td>
+                        <td class="p-2 text-right text-slate-500">${amt}亿</td>
+                        <td class="p-2 text-right text-slate-500">${pe}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderSectorDetail(name) {
+            document.getElementById('sec-detail-name').innerText = name;
+
+            const svg = document.getElementById('sector-detail-chart');
+            if(svg) {
+                let points = "0,150 ";
+                let y = 150;
+                for(let i=1; i<=60; i++) {
+                    y += (Math.random()-0.48) * 10;
+                    points += `${i*10},${y} `;
+                }
+                let html = `
+                    <polyline points="${points}" fill="none" stroke="#e74c3c" stroke-width="2" />
+                    <text x="10" y="20" font-size="10" fill="#e74c3c">板块指数</text>
+                `;
+                svg.innerHTML = html;
+            }
+
+            const container = document.getElementById('sector-cons-cards');
+            if(container) {
+                let html = '';
+                for(let i=0; i<6; i++) {
+                    const pct = (Math.random() * 10 - 5).toFixed(2);
+                    const color = pct > 0 ? 'text-red-500' : 'text-green-600';
+                    html += `
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded hover:border-blue-300 cursor-pointer">
+                            <div class="font-bold text-slate-700 text-sm">${name}龙头${String.fromCharCode(65+i)}</div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-xs text-slate-500 font-mono">00${Math.floor(Math.random()*1000)}</span>
+                                <span class="text-xs font-bold ${color}">${pct}%</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-1">PE: ${(Math.random()*50).toFixed(1)}</div>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            }
+        }
+
+        window.onload = function() {
+            renderMarketPage(); 
+            switchPage('market'); 
+        };
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量化数据库 模拟页面</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Zcool+KuaiLe&display=swap');
+        
+        body {
+            background-color: #FAF8F1;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-image: radial-gradient(#E5E0D0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .paper-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 4px 6px 0px 0px rgba(0,0,0,0.1);
+            border: 2px solid rgba(0,0,0,0.05);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        .paper-card:hover {
+            transform: translateY(-4px) rotate(1deg);
+            box-shadow: 6px 8px 0px 0px rgba(0,0,0,0.15);
+        }
+
+        .paper-btn {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .paper-btn:active {
+            transform: scale(0.95);
+        }
+
+        .hand-font {
+            font-family: 'Zcool KuaiLe', cursive, sans-serif;
+        }
+
+        /* 颜色主题 */
+        .theme-blue { border-color: #60A5FA; }
+        .theme-blue-bg { background-color: #EFF6FF; }
+        .theme-blue-text { color: #2563EB; }
+        .theme-blue-badge { background-color: #DBEAFE; color: #1E40AF; }
+        
+        .theme-yellow { border-color: #FBBF24; }
+        .theme-yellow-bg { background-color: #FFFBEB; }
+        .theme-yellow-text { color: #D97706; }
+        .theme-yellow-badge { background-color: #FEF3C7; color: #92400E; }
+
+        .theme-red { border-color: #F87171; }
+        .theme-red-bg { background-color: #FEF2F2; }
+        .theme-red-text { color: #DC2626; }
+        .theme-red-badge { background-color: #FEE2E2; color: #991B1B; }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // --- Inline Icon Components ---
+        const Icon = ({ children, size = 24, className = "", ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Database = (props) => <Icon {...props}><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /></Icon>;
+        const DatabaseZap = (props) => <Icon {...props}><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="m13 2-2 2.5h3L13 7" strokeWidth="2.5" stroke="#FBBF24" fill="none"/></Icon>;
+        const Activity = (props) => <Icon {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></Icon>;
+        const Clock = (props) => <Icon {...props}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>;
+        const ArrowLeft = (props) => <Icon {...props}><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></Icon>;
+        const Search = (props) => <Icon {...props}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></Icon>;
+        const FileText = (props) => <Icon {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><polyline points="10 9 9 9 8 9" /></Icon>;
+        const Code = (props) => <Icon {...props}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></Icon>;
+        const HardDrive = (props) => <Icon {...props}><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></Icon>;
+
+        // --- Real Data & Stats ---
+        const DB_STATS = {
+            "kpl_limit_up": { size: "15.42 MiB", rows: "130,114" },
+            "kpl_limit_broken": { size: "3.86 MiB", rows: "47,879" },
+            "kpl_limit_down": { size: "3.42 MiB", rows: "42,593" },
+            "kpl_limit_up_natural": { size: "14.53 MiB", rows: "113,678" },
+            "market_index_daily": { size: "239.95 MiB", rows: "2,280,309" },
+            "market_index_weekly": { size: "50.45 MiB", rows: "479,428" },
+            "market_index_monthly": { size: "11.91 MiB", rows: "113,136" },
+            "market_stock_active_daily": { size: "2.74 GiB", rows: "16,236,001" },
+            "market_stock_active_weekly": { size: "592.92 MiB", rows: "3,434,927" },
+            "market_stock_active_monthly": { size: "139.66 MiB", rows: "809,069" },
+            "market_stock_delisted_daily": { size: "194.03 MiB", rows: "1,124,058" },
+            "market_stock_delisted_weekly": { size: "41.17 MiB", rows: "238,497" },
+            "market_stock_delisted_monthly": { size: "9.92 MiB", rows: "57,456" },
+            "meta_index_info": { size: "89.68 KiB", rows: "564" },
+            "meta_stock_info": { size: "1.40 MiB", rows: "5,449" },
+            "meta_sector_info": { size: "194.66 KiB", rows: "2,840" },
+            "meta_stock_delisted": { size: "26.05 KiB", rows: "312" },
+            "rank_block_concept": { size: "1.11 MiB", rows: "19,000" },
+            "rank_block_industry": { size: "1.07 MiB", rows: "18,981" },
+            "rank_fund_etf_sh": { size: "14.24 MiB", rows: "171,574" },
+            "rank_fund_etf_sz": { size: "9.89 MiB", rows: "118,453" },
+            "rank_fund_otc": { size: "8.13 MiB", rows: "80,084" },
+            "rank_futures": { size: "603.75 KiB", rows: "10,835" },
+            "rel_stock_sector": { size: "12.33 MiB", rows: "207,206" },
+            "stock_fundamental_daily": { size: "3.33 GiB", rows: "15,231,440" },
+            "factor_alphas_daily": { size: "14.03 GiB", rows: "16,236,001" },
+            "factor_momentum_daily": { size: "2.06 GiB", rows: "16,236,001" },
+            "factor_sentiment_daily": { size: "8.63 MiB", rows: "177,940" },
+            "factor_technical_daily": { size: "4.51 GiB", rows: "16,236,001" },
+            "factor_value_daily": { size: "1.46 GiB", rows: "15,661,833" },
+            "meta_alpha101_info": { size: "25.28 KiB", rows: "101" },
+            "meta_factor_info": { size: "5.88 KiB", rows: "58" },
+            "ticks": { size: "659.61 GiB", rows: "26,228,467,861" }
+        };
+
+        const REAL_DATA = {
+            "kpl_limit_broken": [
+                {trade_date: "2018-01-02", stock_code: "000732.SZ", stock_name: "泰禾集团", limit_time: "09:36:57", reason: "市场合力不足", plate: "ST板块、地产链", seal_amt: "1200000", streak: "2连板"},
+                {trade_date: "2018-01-03", stock_code: "000736.SZ", stock_name: "中交地产", limit_time: "09:41:57", reason: "获利盘兑现", plate: "房地产、参股金融", seal_amt: "850000", streak: "首板"},
+                {trade_date: "2018-01-04", stock_code: "002516.SZ", stock_name: "旷达科技", limit_time: "10:17:57", reason: "突发利空", plate: "汽车零部件、滤波器", seal_amt: "560000", streak: "3连板"},
+                {trade_date: "2018-01-05", stock_code: "600123.SH", stock_name: "兰花科创", limit_time: "10:30:15", reason: "大盘跳水", plate: "煤炭概念", seal_amt: "2100000", streak: "首板"},
+                {trade_date: "2018-01-06", stock_code: "000550.SZ", stock_name: "江铃汽车", limit_time: "13:15:00", reason: "板块轮动", plate: "新能源车", seal_amt: "1800000", streak: "首板"}
+            ],
+            "kpl_limit_down": [
+                {trade_date: "2018-01-02", stock_code: "000655.SZ", stock_name: "金岭矿业", limit_time: "14:55:00", reason: "业绩暴雷", plate: "有色金属、并购重组", seal_amt: "53884595.0", streak: "首阴"},
+                {trade_date: "2018-01-03", stock_code: "002576.SZ", stock_name: "通达动力", limit_time: "09:30:00", reason: "重组失败", plate: "机器人概念、电机电控", seal_amt: "257387690.0", streak: "2连跌"},
+                {trade_date: "2018-01-04", stock_code: "300639.SZ", stock_name: "凯普生物", limit_time: "13:20:10", reason: "减持公告", plate: "新冠检测、年报预增", seal_amt: "89803605.0", streak: "首阴"},
+                {trade_date: "2018-01-05", stock_code: "600519.SH", stock_name: "贵州茅台", limit_time: "14:15:22", reason: "业绩不及预期", plate: "白酒", seal_amt: "1230000.0", streak: "首阴"},
+                {trade_date: "2018-01-06", stock_code: "000002.SZ", stock_name: "万科A", limit_time: "10:05:33", reason: "行业利空", plate: "房地产", seal_amt: "5000000.0", streak: "2连跌"}
+            ],
+            "kpl_limit_up": [
+                {trade_date: "2018-01-02", stock_code: "000672.SZ", stock_name: "上峰水泥", limit_time: "13:23:57", reason: "涨价预期", plate: "地产链、一带一路", seal_amt: "50000000", streak: "首板"},
+                {trade_date: "2018-01-03", stock_code: "000703.SZ", stock_name: "恒逸石化", limit_time: "13:42:57", reason: "业绩超预期", plate: "化工、POE胶膜", seal_amt: "80000000", streak: "3天2板"},
+                {trade_date: "2018-01-04", stock_code: "000789.SZ", stock_name: "万年青", limit_time: "11:18:57", reason: "政策利好", plate: "地产链、基础建设", seal_amt: "35000000", streak: "首板"},
+                {trade_date: "2018-01-05", stock_code: "600111.SH", stock_name: "北方稀土", limit_time: "09:45:00", reason: "资源紧缺", plate: "稀土永磁", seal_amt: "120000000", streak: "2连板"},
+                {trade_date: "2018-01-06", stock_code: "002460.SZ", stock_name: "赣锋锂业", limit_time: "14:00:10", reason: "产能扩张", plate: "锂电池", seal_amt: "60000000", streak: "首板"}
+            ],
+            "kpl_limit_up_natural": [
+                {trade_date: "2018-01-02", stock_code: "000672.SZ", stock_name: "上峰水泥", limit_time: "13:23:57", reason: "自然涨停", plate: "地产链、芯片", seal_amt: "50000000", streak: "首板"},
+                {trade_date: "2018-01-03", stock_code: "000703.SZ", stock_name: "恒逸石化", limit_time: "13:42:57", reason: "主力拉升", plate: "化工、光伏", seal_amt: "80000000", streak: "首板"},
+                {trade_date: "2018-01-04", stock_code: "000789.SZ", stock_name: "万年青", limit_time: "11:18:57", reason: "游资接力", plate: "地产链、基础建设", seal_amt: "35000000", streak: "首板"},
+                {trade_date: "2018-01-05", stock_code: "300059.SZ", stock_name: "东方财富", limit_time: "10:15:22", reason: "证券板块异动", plate: "互联网金融", seal_amt: "150000000", streak: "首板"},
+                {trade_date: "2018-01-06", stock_code: "601888.SH", stock_name: "中国中免", limit_time: "11:20:05", reason: "消费复苏", plate: "免税店", seal_amt: "80000000", streak: "首板"}
+            ],
+            "market_index_daily": [
+                {trade_date: "1990-12-19", stock_code: "000001.SH", stock_name: "上证指数", open: 96.05, high: 99.98, low: 95.79, close: 99.98, vol: 1032.0, amount: 494000.0, up_count: 8.0, down_count: 0.0},
+                {trade_date: "1990-12-20", stock_code: "000002.SH", stock_name: "上证A指", open: 104.3, high: 104.39, low: 99.98, close: 104.39, vol: 32768.5, amount: 84000.0, up_count: 3.0, down_count: 0.0},
+                {trade_date: "1990-12-21", stock_code: "000003.SH", stock_name: "B股指数", open: 109.07, high: 109.13, low: 103.73, close: 109.13, vol: 1200.0, amount: 16000.0, up_count: 5.0, down_count: 0.0},
+                {trade_date: "1990-12-24", stock_code: "399001.SZ", stock_name: "深证成指", open: 113.57, high: 114.55, low: 109.13, close: 114.55, vol: 2050.0, amount: 32000.0, up_count: 6.0, down_count: 0.0},
+                {trade_date: "2025-11-14", stock_code: "399330.SZ", stock_name: "深证100", open: 120.25, high: 120.25, low: 114.55, close: 120.25, vol: 3010.0, amount: 50000.0, up_count: 7.0, down_count: 0.0}
+            ],
+            "market_index_monthly": [
+                {trade_date: "1990-12-31", stock_code: "000001.SH", stock_name: "上证指数", open: 96.05, high: 127.61, low: 95.79, close: 127.61, vol: 18.0, amount: 936000.0, up_count: 41.0, down_count: 0.0},
+                {trade_date: "1991-01-31", stock_code: "000001.SH", stock_name: "上证指数", open: 127.61, high: 135.19, low: 127.61, close: 129.97, vol: 671.0, amount: 36371000.0, up_count: 75.0, down_count: 36.0},
+                {trade_date: "1991-02-28", stock_code: "000001.SH", stock_name: "上证指数", open: 129.97, high: 136.50, low: 128.00, close: 133.50, vol: 550.0, amount: 30000000.0, up_count: 60.0, down_count: 40.0},
+                {trade_date: "1991-03-31", stock_code: "000001.SH", stock_name: "上证指数", open: 133.50, high: 140.00, low: 130.00, close: 138.20, vol: 720.0, amount: 45000000.0, up_count: 80.0, down_count: 20.0},
+                {trade_date: "1991-04-30", stock_code: "000001.SH", stock_name: "上证指数", open: 138.20, high: 145.00, low: 135.00, close: 142.00, vol: 800.0, amount: 50000000.0, up_count: 90.0, down_count: 10.0}
+            ],
+            "market_index_weekly": [
+                {trade_date: "1990-12-21", stock_code: "000001.SH", stock_name: "上证指数", open: 96.05, high: 109.13, low: 95.79, close: 109.13, vol: 1544.0, amount: 594000.0, up_count: 16.0, down_count: 0.0},
+                {trade_date: "1990-12-28", stock_code: "000001.SH", stock_name: "上证指数", open: 113.57, high: 126.45, low: 109.13, close: 126.45, vol: 4098.0, amount: 282000.0, up_count: 20.0, down_count: 0.0},
+                {trade_date: "1991-01-04", stock_code: "000001.SH", stock_name: "上证指数", open: 126.45, high: 132.00, low: 126.00, close: 131.50, vol: 4500.0, amount: 300000.0, up_count: 25.0, down_count: 5.0},
+                {trade_date: "1991-01-11", stock_code: "000001.SH", stock_name: "上证指数", open: 131.50, high: 134.50, low: 130.00, close: 134.00, vol: 4800.0, amount: 320000.0, up_count: 22.0, down_count: 8.0},
+                {trade_date: "1991-01-18", stock_code: "000001.SH", stock_name: "上证指数", open: 134.00, high: 138.00, low: 133.00, close: 136.50, vol: 5200.0, amount: 350000.0, up_count: 28.0, down_count: 6.0}
+            ],
+            "market_stock_active_daily": [
+                {trade_date: "1990-12-19", stock_code: "600601.SH", open: 185.3, high: 185.3, low: 185.3, close: 185.3, vol: 50.0, amount: 37000.0, amplitude: 0.0, pct_chg: 270.6, change: 135.3, turnover_rate: 2.5, open_qfq: 1.06, high_qfq: 1.06, low_qfq: 1.06, close_qfq: 1.06, open_hfq: 185.3, high_hfq: 185.3, low_hfq: 185.3, close_hfq: 185.3},
+                {trade_date: "1990-12-20", stock_code: "600601.SH", open: 185.3, high: 194.6, low: 185.3, close: 194.6, vol: 21.0, amount: 16000.0, amplitude: 5.02, pct_chg: 5.02, change: 9.3, turnover_rate: 1.05, open_qfq: 1.06, high_qfq: 1.06, low_qfq: 1.06, close_qfq: 1.06, open_hfq: 185.3, high_hfq: 194.6, low_hfq: 185.3, close_hfq: 194.6},
+                {trade_date: "1990-12-21", stock_code: "600601.SH", open: 204.3, high: 204.3, low: 204.3, close: 204.3, vol: 8.0, amount: 6000.0, amplitude: 0.0, pct_chg: 4.98, change: 9.7, turnover_rate: 0.4, open_qfq: 1.06, high_qfq: 1.06, low_qfq: 1.06, close_qfq: 1.06, open_hfq: 204.3, high_hfq: 204.3, low_hfq: 204.3, close_hfq: 204.3},
+                {trade_date: "1990-12-24", stock_code: "600601.SH", open: 214.5, high: 214.5, low: 214.5, close: 214.5, vol: 15.0, amount: 12000.0, amplitude: 0.0, pct_chg: 4.99, change: 10.2, turnover_rate: 0.75, open_qfq: 1.12, high_qfq: 1.12, low_qfq: 1.12, close_qfq: 1.12, open_hfq: 214.5, high_hfq: 214.5, low_hfq: 214.5, close_hfq: 214.5},
+                {trade_date: "1990-12-25", stock_code: "600601.SH", open: 225.2, high: 225.2, low: 225.2, close: 225.2, vol: 10.0, amount: 9000.0, amplitude: 0.0, pct_chg: 4.99, change: 10.7, turnover_rate: 0.5, open_qfq: 1.17, high_qfq: 1.17, low_qfq: 1.17, close_qfq: 1.17, open_hfq: 225.2, high_hfq: 225.2, low_hfq: 225.2, close_hfq: 225.2}
+            ],
+            "market_stock_active_monthly": [
+                {trade_date: "1990-12-31", stock_code: "600601.SH", open: 185.3, high: 241.3, low: 4.29, close: 241.3, vol: 111.0, amount: 87350.0, amplitude: 474.02, pct_chg: 382.6, change: 191.3, turnover_rate: 5.56, open_qfq: 1.06, high_qfq: 1.06, low_qfq: 1.04, close_qfq: 1.06, open_hfq: 185.3, high_hfq: 241.3, low_hfq: 4.29, close_hfq: 241.3},
+                {trade_date: "1991-01-31", stock_code: "600601.SH", open: 241.3, high: 255.0, low: 240.0, close: 250.0, vol: 120.0, amount: 90000.0, amplitude: 6.22, pct_chg: 3.61, change: 8.7, turnover_rate: 6.00, open_qfq: 1.06, high_qfq: 1.10, low_qfq: 1.05, close_qfq: 1.08, open_hfq: 241.3, high_hfq: 255.0, low_hfq: 240.0, close_hfq: 250.0},
+                {trade_date: "1991-02-28", stock_code: "600601.SH", open: 250.0, high: 265.0, low: 248.0, close: 260.0, vol: 130.0, amount: 98000.0, amplitude: 6.80, pct_chg: 4.00, change: 10.0, turnover_rate: 6.50, open_qfq: 1.08, high_qfq: 1.15, low_qfq: 1.07, close_qfq: 1.12, open_hfq: 250.0, high_hfq: 265.0, low_hfq: 248.0, close_hfq: 260.0},
+                {trade_date: "1991-03-31", stock_code: "600601.SH", open: 260.0, high: 275.0, low: 258.0, close: 270.0, vol: 140.0, amount: 105000.0, amplitude: 6.54, pct_chg: 3.85, change: 10.0, turnover_rate: 7.00, open_qfq: 1.12, high_qfq: 1.20, low_qfq: 1.11, close_qfq: 1.18, open_hfq: 260.0, high_hfq: 275.0, low_hfq: 258.0, close_hfq: 270.0},
+                {trade_date: "1991-04-30", stock_code: "600601.SH", open: 270.0, high: 290.0, low: 265.0, close: 285.0, vol: 150.0, amount: 120000.0, amplitude: 9.26, pct_chg: 5.56, change: 15.0, turnover_rate: 7.50, open_qfq: 1.18, high_qfq: 1.25, low_qfq: 1.15, close_qfq: 1.22, open_hfq: 270.0, high_hfq: 290.0, low_hfq: 265.0, close_hfq: 285.0}
+            ],
+            "market_stock_active_weekly": [
+                {trade_date: "1990-12-21", stock_code: "600601.SH", open: 185.3, high: 204.3, low: 185.3, close: 204.3, vol: 79.0, amount: 59000.0, amplitude: 38.0, pct_chg: 308.6, change: 154.3, turnover_rate: 3.95, open_qfq: 1.06, high_qfq: 1.06, low_qfq: 1.06, close_qfq: 1.06, open_hfq: 185.3, high_hfq: 204.3, low_hfq: 185.3, close_hfq: 204.3},
+                {trade_date: "1990-12-28", stock_code: "600601.SH", open: 204.3, high: 238.9, low: 204.3, close: 238.9, vol: 90.0, amount: 63500.0, amplitude: 16.94, pct_chg: 16.94, change: 34.6, turnover_rate: 4.50, open_qfq: 1.06, high_qfq: 1.15, low_qfq: 1.06, close_qfq: 1.15, open_hfq: 204.3, high_hfq: 238.9, low_hfq: 204.3, close_hfq: 238.9},
+                {trade_date: "1991-01-04", stock_code: "600601.SH", open: 238.9, high: 245.0, low: 235.0, close: 242.0, vol: 95.0, amount: 68000.0, amplitude: 4.19, pct_chg: 1.30, change: 3.1, turnover_rate: 4.75, open_qfq: 1.15, high_qfq: 1.18, low_qfq: 1.13, close_qfq: 1.16, open_hfq: 238.9, high_hfq: 245.0, low_hfq: 235.0, close_hfq: 242.0},
+                {trade_date: "1991-01-11", stock_code: "600601.SH", open: 242.0, high: 250.0, low: 240.0, close: 248.0, vol: 100.0, amount: 72000.0, amplitude: 4.13, pct_chg: 2.48, change: 6.0, turnover_rate: 5.00, open_qfq: 1.16, high_qfq: 1.20, low_qfq: 1.15, close_qfq: 1.19, open_hfq: 242.0, high_hfq: 250.0, low_hfq: 240.0, close_hfq: 248.0},
+                {trade_date: "1991-01-18", stock_code: "600601.SH", open: 248.0, high: 255.0, low: 245.0, close: 252.0, vol: 105.0, amount: 75000.0, amplitude: 4.03, pct_chg: 1.61, change: 4.0, turnover_rate: 5.25, open_qfq: 1.19, high_qfq: 1.22, low_qfq: 1.18, close_qfq: 1.21, open_hfq: 248.0, high_hfq: 255.0, low_hfq: 245.0, close_hfq: 252.0}
+            ],
+            "market_stock_delisted_daily": [
+                {trade_date: "1990-12-20", stock_code: "600652.SH", open: 193.0, high: 193.0, low: 193.0, close: 193.0, vol: 2.0, amount: 1000.0, amplitude: 0.0, pct_chg: 286.0, change: 143.0, turnover_rate: 3.64, open_qfq: 0.52, high_qfq: 0.52, low_qfq: 0.52, close_qfq: 0.52, open_hfq: 193.0, high_hfq: 193.0, low_hfq: 193.0, close_hfq: 193.0},
+                {trade_date: "1990-12-24", stock_code: "600652.SH", open: 193.0, high: 193.0, low: 193.0, close: 193.0, vol: 0.0, amount: 405.0, amplitude: 0.0, pct_chg: 0.0, change: 0.0, turnover_rate: 0.18, open_qfq: 0.52, high_qfq: 0.52, low_qfq: 0.52, close_qfq: 0.52, open_hfq: 193.0, high_hfq: 193.0, low_hfq: 193.0, close_hfq: 193.0},
+                {trade_date: "1990-12-28", stock_code: "600652.SH", open: 204.7, high: 204.7, low: 204.7, close: 204.7, vol: 5.0, amount: 4000.0, amplitude: 0.0, pct_chg: 6.06, change: 11.7, turnover_rate: 9.09, open_qfq: 0.52, high_qfq: 0.52, low_qfq: 0.52, close_qfq: 0.52, open_hfq: 204.7, high_hfq: 204.7, low_hfq: 204.7, close_hfq: 204.7},
+                {trade_date: "1991-01-02", stock_code: "600652.SH", open: 204.7, high: 210.0, low: 204.7, close: 208.0, vol: 6.0, amount: 4500.0, amplitude: 2.59, pct_chg: 1.61, change: 3.3, turnover_rate: 9.50, open_qfq: 0.52, high_qfq: 0.54, low_qfq: 0.52, close_qfq: 0.53, open_hfq: 204.7, high_hfq: 210.0, low_hfq: 204.7, close_hfq: 208.0},
+                {trade_date: "1991-01-03", stock_code: "600652.SH", open: 208.0, high: 215.0, low: 208.0, close: 212.0, vol: 7.0, amount: 5000.0, amplitude: 3.37, pct_chg: 1.92, change: 4.0, turnover_rate: 10.0, open_qfq: 0.53, high_qfq: 0.55, low_qfq: 0.53, close_qfq: 0.54, open_hfq: 208.0, high_hfq: 215.0, low_hfq: 208.0, close_hfq: 212.0}
+            ],
+            "market_stock_delisted_monthly": [
+                {trade_date: "1990-12-31", stock_code: "600652.SH", open: 193.0, high: 206.7, low: 193.0, close: 206.7, vol: 12.0, amount: 9405.0, amplitude: 27.4, pct_chg: 313.4, change: 156.7, turnover_rate: 22.0, open_qfq: 0.52, high_qfq: 0.53, low_qfq: 0.52, close_qfq: 0.53, open_hfq: 193.0, high_hfq: 206.7, low_hfq: 193.0, close_hfq: 206.7},
+                {trade_date: "1991-01-31", stock_code: "600652.SH", open: 206.7, high: 215.0, low: 205.0, close: 212.0, vol: 20.0, amount: 15000.0, amplitude: 4.84, pct_chg: 2.56, change: 5.3, turnover_rate: 25.0, open_qfq: 0.53, high_qfq: 0.55, low_qfq: 0.52, close_qfq: 0.54, open_hfq: 206.7, high_hfq: 215.0, low_hfq: 205.0, close_hfq: 212.0},
+                {trade_date: "1991-02-28", stock_code: "600652.SH", open: 212.0, high: 220.0, low: 210.0, close: 218.0, vol: 25.0, amount: 18000.0, amplitude: 4.72, pct_chg: 2.83, change: 6.0, turnover_rate: 28.0, open_qfq: 0.54, high_qfq: 0.56, low_qfq: 0.54, close_qfq: 0.55, open_hfq: 212.0, high_hfq: 220.0, low_hfq: 210.0, close_hfq: 218.0},
+                {trade_date: "1991-03-31", stock_code: "600652.SH", open: 218.0, high: 225.0, low: 215.0, close: 222.0, vol: 30.0, amount: 21000.0, amplitude: 4.59, pct_chg: 1.83, change: 4.0, turnover_rate: 30.0, open_qfq: 0.55, high_qfq: 0.57, low_qfq: 0.55, close_qfq: 0.56, open_hfq: 218.0, high_hfq: 225.0, low_hfq: 215.0, close_hfq: 222.0},
+                {trade_date: "1991-04-30", stock_code: "600652.SH", open: 222.0, high: 230.0, low: 220.0, close: 228.0, vol: 35.0, amount: 24000.0, amplitude: 4.50, pct_chg: 2.70, change: 6.0, turnover_rate: 32.0, open_qfq: 0.56, high_qfq: 0.58, low_qfq: 0.56, close_qfq: 0.57, open_hfq: 222.0, high_hfq: 230.0, low_hfq: 220.0, close_hfq: 228.0}
+            ],
+            "market_stock_delisted_weekly": [
+                {trade_date: "1990-12-20", stock_code: "600652.SH", open: 193.0, high: 193.0, low: 193.0, close: 193.0, vol: 2.0, amount: 1000.0, amplitude: 0.0, pct_chg: 286.0, change: 143.0, turnover_rate: 3.64, open_qfq: 0.52, high_qfq: 0.52, low_qfq: 0.52, close_qfq: 0.52, open_hfq: 193.0, high_hfq: 193.0, low_hfq: 193.0, close_hfq: 193.0},
+                {trade_date: "1990-12-28", stock_code: "600652.SH", open: 193.0, high: 204.7, low: 193.0, close: 204.7, vol: 5.0, amount: 4405.0, amplitude: 6.06, pct_chg: 6.06, change: 11.7, turnover_rate: 9.27, open_qfq: 0.52, high_qfq: 0.52, low_qfq: 0.52, close_qfq: 0.52, open_hfq: 193.0, high_hfq: 204.7, low_hfq: 193.0, close_hfq: 204.7},
+                {trade_date: "1991-01-04", stock_code: "600652.SH", open: 204.7, high: 210.0, low: 204.0, close: 208.0, vol: 8.0, amount: 6000.0, amplitude: 2.93, pct_chg: 1.61, change: 3.3, turnover_rate: 10.5, open_qfq: 0.52, high_qfq: 0.54, low_qfq: 0.52, close_qfq: 0.53, open_hfq: 204.7, high_hfq: 210.0, low_hfq: 204.0, close_hfq: 208.0},
+                {trade_date: "1991-01-11", stock_code: "600652.SH", open: 208.0, high: 215.0, low: 208.0, close: 212.0, vol: 10.0, amount: 7500.0, amplitude: 3.37, pct_chg: 1.92, change: 4.0, turnover_rate: 11.0, open_qfq: 0.53, high_qfq: 0.55, low_qfq: 0.53, close_qfq: 0.54, open_hfq: 208.0, high_hfq: 215.0, low_hfq: 208.0, close_hfq: 212.0},
+                {trade_date: "1991-01-18", stock_code: "600652.SH", open: 212.0, high: 218.0, low: 212.0, close: 216.0, vol: 12.0, amount: 8800.0, amplitude: 2.83, pct_chg: 1.89, change: 4.0, turnover_rate: 12.0, open_qfq: 0.54, high_qfq: 0.56, low_qfq: 0.54, close_qfq: 0.55, open_hfq: 212.0, high_hfq: 218.0, low_hfq: 212.0, close_hfq: 216.0}
+            ],
+            "meta_index_info": [
+                {ts_code: "000001.SH", name: "上证指数", market: "SSE", publisher: "中证指数有限公司", category: "综合指数", base_date: "19901219", base_point: 100.0, list_date: "19910715", symbol_num: "000001", market_id: 1.0},
+                {ts_code: "000002.SH", name: "上证A指", market: "SSE", publisher: "中证指数有限公司", category: "规模指数", base_date: "19901219", base_point: 100.0, list_date: "19920221", symbol_num: "000002", market_id: 1.0},
+                {ts_code: "000003.SH", name: "B股指数", market: "SSE", publisher: "中证指数有限公司", category: "规模指数", base_date: "19920221", base_point: 100.0, list_date: "19920817", symbol_num: "000003", market_id: 1.0},
+                {ts_code: "399001.SZ", name: "深证成指", market: "SZSE", publisher: "深圳证券信息有限公司", category: "规模指数", base_date: "19940720", base_point: 1000.0, list_date: "19950123", symbol_num: "399001", market_id: 0.0},
+                {ts_code: "000300.SH", name: "沪深300", market: "SSE", publisher: "中证指数有限公司", category: "规模指数", base_date: "20041231", base_point: 1000.0, list_date: "20050408", symbol_num: "000300", market_id: 1.0}
+            ],
+            "meta_sector_info": [
+                {sector_id: "1cfa02f0697ad773", sector_name: "CSRC1批发和零售业", sector_type: "CSRC_1", source_file: "CSRC1批发和零售业", updated_at: "2026-01-30 17:54:49"},
+                {sector_id: "206d788f95aaaa22", sector_name: "CSRC1制造业", sector_type: "CSRC_1", source_file: "CSRC1制造业", updated_at: "2026-01-30 17:54:49"},
+                {sector_id: "20c4e102d04c6844", sector_name: "SW2半导体", sector_type: "SW2", source_file: "SW2半导体", updated_at: "2026-01-30 17:54:49"},
+                {sector_id: "31d5f213a6bbcc55", sector_name: "CSRC1金融业", sector_type: "CSRC_1", source_file: "CSRC1金融业", updated_at: "2026-01-30 17:54:49"},
+                {sector_id: "42e6g324b7ccdd66", sector_name: "CSRC1房地产业", sector_type: "CSRC_1", source_file: "CSRC1房地产业", updated_at: "2026-01-30 17:54:49"}
+            ],
+            "meta_stock_delisted": [
+                {ts_code: "000003.SZ", symbol: "000003", name: "PT金田A(退)", area: "深圳", industry: "综合类", list_date: "19910703", delist_date: "20020614"},
+                {ts_code: "000005.SZ", symbol: "000005", name: "ST星源(退)", area: "深圳", industry: "环境保护", list_date: "19901210", delist_date: "20240426"},
+                {ts_code: "000013.SZ", symbol: "000013", name: "*ST石化A(退)", area: "深圳", industry: "石油化工", list_date: "19920506", delist_date: "20040920"},
+                {ts_code: "600001.SH", symbol: "600001", name: "邯郸钢铁(退)", area: "河北", industry: "钢铁", list_date: "19980122", delist_date: "20091229"},
+                {ts_code: "600002.SH", symbol: "600002", name: "齐鲁石化(退)", area: "山东", industry: "化工", list_date: "19980408", delist_date: "20080314"}
+            ],
+            "meta_stock_info": [
+                {ts_code: "000001.SZ", symbol: "000001", name: "平安银行", area: "深圳", industry: "银行", fullname: "平安银行股份有限公司", enname: "Ping An Bank Co., Ltd.", cn_spell: "payh", market: "主板", exchange: "SZSE", list_date: "19910403", act_controller: "Richard C. Blum", act_ent_type: "外资企业"},
+                {ts_code: "000002.SZ", symbol: "000002", name: "万科A", area: "深圳", industry: "全国地产", fullname: "万科企业股份有限公司", enname: "China Vanke Co.,Ltd.", cn_spell: "wka", market: "主板", exchange: "SZSE", list_date: "19910129", act_controller: "无实际控制人", act_ent_type: "无"},
+                {ts_code: "000004.SZ", symbol: "000004", name: "*ST国华", area: "深圳", industry: "软件服务", fullname: "深圳国华网安科技股份有限公司", enname: "Shenzhen Guohua Network Security Technology Co., Ltd.", cn_spell: "stgh", market: "主板", exchange: "SZSE", list_date: "19910114", act_controller: "中国农业大学", act_ent_type: "校办企业"},
+                {ts_code: "000006.SZ", symbol: "000006", name: "深振业A", area: "深圳", industry: "区域地产", fullname: "深圳市振业(集团)股份有限公司", enname: "Shenzhen Zhenye (Group) Co.,Ltd.", cn_spell: "szya", market: "主板", exchange: "SZSE", list_date: "19920427", act_controller: "深圳市国资委", act_ent_type: "地方国企"},
+                {ts_code: "000007.SZ", symbol: "000007", name: "*ST全新", area: "深圳", industry: "酒店餐饮", fullname: "深圳市全新好股份有限公司", enname: "Shenzhen Quanxinhao Co.,Ltd.", cn_spell: "stqx", market: "主板", exchange: "SZSE", list_date: "19920413", act_controller: "自然人", act_ent_type: "民营企业"}
+            ],
+            "rank_block_concept": [
+                {trade_date: "2023-11-21", code: "886060.TI", name: "短剧游戏", rank: 1, heat: "98.5", pct_chg: 3.14, tags: "热门", reason: "短剧市场火爆"},
+                {trade_date: "2023-11-22", code: "886060.TI", name: "短剧游戏", rank: 1, heat: "99.2", pct_chg: 4.20, tags: "连板", reason: "龙头股封板"},
+                {trade_date: "2023-11-23", code: "886050.TI", name: "算力租赁", rank: 2, heat: "95.0", pct_chg: 2.98, tags: "反弹", reason: "算力需求增加"},
+                {trade_date: "2023-11-24", code: "886045.TI", name: "混合现实", rank: 3, heat: "92.1", pct_chg: 2.50, tags: "新品", reason: "新品发布预期"},
+                {trade_date: "2023-11-25", code: "886072.TI", name: "AIGC概念", rank: 4, heat: "88.6", pct_chg: 1.20, tags: "趋势", reason: "OpenAI动态"}
+            ],
+            "rank_block_industry": [
+                {trade_date: "2023-11-21", code: "881158.TI", name: "零售", rank: 1, heat: "90.2", pct_chg: 1.73, tags: "消费", reason: "年底消费旺季"},
+                {trade_date: "2023-11-22", code: "881164.TI", name: "传媒", rank: 2, heat: "94.5", pct_chg: 2.02, tags: "AI应用", reason: "游戏版号发放"},
+                {trade_date: "2023-11-23", code: "881164.TI", name: "传媒", rank: 1, heat: "96.0", pct_chg: 3.10, tags: "主线", reason: "短剧热度扩散"},
+                {trade_date: "2023-11-24", code: "881105.TI", name: "汽车", rank: 3, heat: "89.5", pct_chg: 1.50, tags: "出口", reason: "出口数据亮眼"},
+                {trade_date: "2023-11-25", code: "881123.TI", name: "电子", rank: 4, heat: "87.0", pct_chg: 0.88, tags: "周期", reason: "半导体复苏"}
+            ],
+            "rank_fund_etf_sh": [
+                {trade_date: "2023-11-21", code: "501011.OF", name: "汇添富中证中药ETF", rank: 62, heat: "75.0", pct_chg: 2.11, close: 1.25, source: "THS_HOT"},
+                {trade_date: "2023-11-22", code: "501011.OF", name: "汇添富中证中药ETF", rank: 60, heat: "76.5", pct_chg: 1.05, close: 1.26, source: "THS_HOT"},
+                {trade_date: "2023-11-23", code: "519674.OF", name: "银河创新混合A", rank: 71, heat: "72.0", pct_chg: -0.78, close: 3.45, source: "THS_HOT"},
+                {trade_date: "2023-11-24", code: "510300.OF", name: "华泰柏瑞沪深300ETF", rank: 1, heat: "98.0", pct_chg: 0.50, close: 3.80, source: "THS_HOT"},
+                {trade_date: "2023-11-25", code: "512660.OF", name: "国泰中证军工ETF", rank: 10, heat: "85.0", pct_chg: 1.20, close: 1.10, source: "THS_HOT"}
+            ],
+            "rank_fund_etf_sz": [
+                {trade_date: "2023-11-21", code: "161725.OF", name: "招商中证白酒指数A", rank: 9, heat: "88.0", pct_chg: 0.33, close: 1.05, source: "THS_HOT"},
+                {trade_date: "2023-11-22", code: "161725.OF", name: "招商中证白酒指数A", rank: 8, heat: "89.5", pct_chg: 0.50, close: 1.06, source: "THS_HOT"},
+                {trade_date: "2023-11-23", code: "161128.OF", name: "易方达标普信息科技", rank: 10, heat: "86.0", pct_chg: -0.26, close: 2.15, source: "THS_HOT"},
+                {trade_date: "2023-11-24", code: "159915.OF", name: "易方达创业板ETF", rank: 2, heat: "95.0", pct_chg: 0.80, close: 1.90, source: "THS_HOT"},
+                {trade_date: "2023-11-25", code: "159949.OF", name: "华安创业板50ETF", rank: 5, heat: "91.0", pct_chg: 0.90, close: 0.80, source: "THS_HOT"}
+            ],
+            "rank_fund_otc": [
+                {trade_date: "2023-11-21", code: "004685.OF", name: "金元顺安元启灵活配置", rank: 1, heat: "96.0", pct_chg: 0.7, close: 3.20, source: "THS_HOT"},
+                {trade_date: "2023-11-22", code: "004685.OF", name: "金元顺安元启灵活配置", rank: 1, heat: "97.0", pct_chg: 0.8, close: 3.22, source: "THS_HOT"},
+                {trade_date: "2023-11-23", code: "001375.OF", name: "金元顺安优质精选混合C", rank: 2, heat: "94.5", pct_chg: 0.79, close: 1.55, source: "THS_HOT"},
+                {trade_date: "2023-11-24", code: "005827.OF", name: "易方达蓝筹精选混合", rank: 8, heat: "89.0", pct_chg: 0.10, close: 2.10, source: "THS_HOT"},
+                {trade_date: "2023-11-25", code: "000001.OF", name: "华夏成长混合", rank: 20, heat: "82.0", pct_chg: 0.30, close: 1.05, source: "THS_HOT"}
+            ],
+            "rank_futures": [
+                {trade_date: "2023-11-21", code: "SA2401", name: "纯碱2401", rank: 1, heat: "95.5", pct_chg: 1.57, tags: "多头", reason: "库存紧张"},
+                {trade_date: "2023-11-22", code: "SA2401", name: "纯碱2401", rank: 1, heat: "96.0", pct_chg: 2.10, tags: "主升浪", reason: "现货提价"},
+                {trade_date: "2023-11-23", code: "FG2401", name: "玻璃2401", rank: 2, heat: "92.0", pct_chg: 1.1, tags: "跟涨", reason: "产业链联动"},
+                {trade_date: "2023-11-24", code: "RB2401", name: "螺纹钢2401", rank: 3, heat: "88.5", pct_chg: 0.50, tags: "反弹", reason: "地产政策利好"},
+                {trade_date: "2023-11-25", code: "IM2401", name: "铁矿石2401", rank: 4, heat: "85.0", pct_chg: 0.80, tags: "高位震荡", reason: "监管关注"}
+            ],
+            "rel_stock_sector": [
+                {stock_code: "000001.SZ", sector_id: "a7731086ee5a60bc", sector_name: "CSRC1金融业", sector_type: "CSRC_1"},
+                {stock_code: "000001.SZ", sector_id: "d494e00c3441367f", sector_name: "CSRC2货币金融服务", sector_type: "CSRC_2"},
+                {stock_code: "000001.SZ", sector_id: "735e2cb6b6563a78", sector_name: "中证100", sector_type: "D_CONCEPT"},
+                {stock_code: "000002.SZ", sector_id: "42e6g324b7ccdd66", sector_name: "CSRC1房地产业", sector_type: "CSRC_1"},
+                {stock_code: "000002.SZ", sector_id: "55f7h435c8ddeea7", sector_name: "房地产开发", sector_type: "D_INDUSTRY"}
+            ],
+            "stock_fundamental_daily": [
+                {trade_date: "1996-06-28", stock_code: "000403.SZ", open: 5.98, high: 6.26, low: 5.5, close: 5.55, pre_close: 3.78, change: 1.77, pct_chg: 46.83, vol: 194306.0, amount: 113796.73, turnover_rate: 80.96, turnover_rate_f: 80.96, volume_ratio: "5.5", pe: 42.63, pe_ttm: 42.63, pb: 5.53, ps: 2.51, ps_ttm: 2.51, dv_ratio: "0.5", dv_ratio_ttm: "0.5", total_share: 6418.0, float_share: 2400.0, free_share: 2400.0, total_mv: 35619.9, circ_mv: 13320.0},
+                {trade_date: "1996-06-29", stock_code: "000403.SZ", open: 5.55, high: 5.65, low: 5.45, close: 5.50, pre_close: 5.55, change: -0.05, pct_chg: -0.90, vol: 150000.0, amount: 82500.0, turnover_rate: 62.50, turnover_rate_f: 62.50, volume_ratio: "4.2", pe: 42.10, pe_ttm: 42.10, pb: 5.48, ps: 2.48, ps_ttm: 2.48, dv_ratio: "0.5", dv_ratio_ttm: "0.5", total_share: 6418.0, float_share: 2400.0, free_share: 2400.0, total_mv: 35299.0, circ_mv: 13200.0},
+                {trade_date: "1996-06-30", stock_code: "000403.SZ", open: 5.50, high: 5.60, low: 5.40, close: 5.48, pre_close: 5.50, change: -0.02, pct_chg: -0.36, vol: 120000.0, amount: 65760.0, turnover_rate: 50.00, turnover_rate_f: 50.00, volume_ratio: "3.5", pe: 41.90, pe_ttm: 41.90, pb: 5.46, ps: 2.46, ps_ttm: 2.46, dv_ratio: "0.5", dv_ratio_ttm: "0.5", total_share: 6418.0, float_share: 2400.0, free_share: 2400.0, total_mv: 35170.6, circ_mv: 13152.0},
+                {trade_date: "1996-07-01", stock_code: "000403.SZ", open: 5.48, high: 5.60, low: 5.40, close: 5.45, pre_close: 5.48, change: -0.03, pct_chg: -0.55, vol: 110000.0, amount: 60000.0, turnover_rate: 45.83, turnover_rate_f: 45.83, volume_ratio: "3.0", pe: 41.8, pe_ttm: 41.8, pb: 5.43, ps: 2.45, ps_ttm: 2.45, dv_ratio: "0.5", dv_ratio_ttm: "0.5", total_share: 6418.0, float_share: 2400.0, free_share: 2400.0, total_mv: 34978.1, circ_mv: 13080.0},
+                {trade_date: "1996-07-02", stock_code: "000403.SZ", open: 5.45, high: 5.50, low: 5.30, close: 5.35, pre_close: 5.45, change: -0.10, pct_chg: -1.83, vol: 105000.0, amount: 56175.0, turnover_rate: 43.75, turnover_rate_f: 43.75, volume_ratio: "2.8", pe: 41.0, pe_ttm: 41.0, pb: 5.33, ps: 2.40, ps_ttm: 2.40, dv_ratio: "0.5", dv_ratio_ttm: "0.5", total_share: 6418.0, float_share: 2400.0, free_share: 2400.0, total_mv: 34336.3, circ_mv: 12840.0}
+            ],
+            "factor_alphas_daily": [
+                {trade_date: "1990-12-19", stock_code: "600601.SH", alpha_001: "0.01", alpha_002: "-0.05", alpha_003: "0.12", alpha_004: "0.03", alpha_005: "0.02"},
+                {trade_date: "1990-12-20", stock_code: "600601.SH", alpha_001: "0.05", alpha_002: "-0.1", alpha_003: "0.2", alpha_004: "0.01", alpha_005: "0.04"},
+                {trade_date: "1990-12-21", stock_code: "600601.SH", alpha_001: "0.08", alpha_002: "-0.12", alpha_003: "0.25", alpha_004: "0.02", alpha_005: "0.05"},
+                {trade_date: "1990-12-24", stock_code: "600601.SH", alpha_001: "0.10", alpha_002: "-0.15", alpha_003: "0.30", alpha_004: "0.04", alpha_005: "0.06"},
+                {trade_date: "1990-12-25", stock_code: "600601.SH", alpha_001: "0.12", alpha_002: "-0.18", alpha_003: "0.35", alpha_004: "0.05", alpha_005: "0.08"}
+            ],
+            "factor_momentum_daily": [
+                {trade_date: "1990-12-19", stock_code: "600601.SH", roc_5: "1.25", roc_20: "5.50", roc_60: "12.0", volatility_20: "0.03", turnover_mean_5: "0.8", amplitude_mean_5: "1.5", pos_20: "0.6", pos_60: "0.7", mom_acc_5: "0.01", linear_reg_slope_20: "0.05", vr_26: "1.2", skew_20: "0.2", kurt_20: "3.5"},
+                {trade_date: "1990-12-20", stock_code: "600601.SH", roc_5: "2.10", roc_20: "6.20", roc_60: "13.5", volatility_20: "0.04", turnover_mean_5: "1.0", amplitude_mean_5: "1.8", pos_20: "0.7", pos_60: "0.8", mom_acc_5: "0.02", linear_reg_slope_20: "0.06", vr_26: "1.3", skew_20: "0.3", kurt_20: "3.6"},
+                {trade_date: "1990-12-21", stock_code: "600601.SH", roc_5: "3.50", roc_20: "7.80", roc_60: "15.0", volatility_20: "0.05", turnover_mean_5: "1.5", amplitude_mean_5: "2.2", pos_20: "0.8", pos_60: "0.85", mom_acc_5: "0.03", linear_reg_slope_20: "0.07", vr_26: "1.4", skew_20: "0.4", kurt_20: "3.8"},
+                {trade_date: "1990-12-24", stock_code: "600601.SH", roc_5: "5.02", roc_20: "9.50", roc_60: "18.0", volatility_20: "0.05", turnover_mean_5: "1.2", amplitude_mean_5: "2.5", pos_20: "0.85", pos_60: "0.9", mom_acc_5: "0.01", linear_reg_slope_20: "0.08", vr_26: "1.5", skew_20: "0.5", kurt_20: "3.9"},
+                {trade_date: "1990-12-25", stock_code: "600601.SH", roc_5: "10.25", roc_20: "12.0", roc_60: "22.5", volatility_20: "0.04", turnover_mean_5: "1.0", amplitude_mean_5: "2.0", pos_20: "0.9", pos_60: "0.95", mom_acc_5: "0.02", linear_reg_slope_20: "0.09", vr_26: "1.6", skew_20: "0.6", kurt_20: "4.0"}
+            ],
+            "factor_sentiment_daily": [
+                {trade_date: "2018-01-02", stock_code: "000672.SZ", limit_up_streak: 1, is_limit_up: 1, is_limit_broken: 0, kpl_seal_money: 5000000.0, kpl_net_buy_ratio: "0.15", money_flow_main: "20000000"},
+                {trade_date: "2018-01-03", stock_code: "000672.SZ", limit_up_streak: 2, is_limit_up: 1, is_limit_broken: 0, kpl_seal_money: 8000000.0, kpl_net_buy_ratio: "0.18", money_flow_main: "35000000"},
+                {trade_date: "2018-01-04", stock_code: "000672.SZ", limit_up_streak: 3, is_limit_up: 1, is_limit_broken: 0, kpl_seal_money: 12000000.0, kpl_net_buy_ratio: "0.20", money_flow_main: "50000000"},
+                {trade_date: "2018-01-05", stock_code: "000672.SZ", limit_up_streak: 0, is_limit_up: 0, is_limit_broken: 1, kpl_seal_money: 0.0, kpl_net_buy_ratio: "-0.05", money_flow_main: "-15000000"},
+                {trade_date: "2018-01-06", stock_code: "000672.SZ", limit_up_streak: 0, is_limit_up: 0, is_limit_broken: 0, kpl_seal_money: 0.0, kpl_net_buy_ratio: "-0.02", money_flow_main: "-5000000"}
+            ],
+            "factor_technical_daily": [
+                {trade_date: "1990-12-19", stock_code: "600601.SH", ma_5: "185.3", ma_20: "185.3", ma_60: "185.3", bias_20: "0.0", rsi_14: "50.0", macd_diff: 0.0, macd_dea: 0.0, kdj_k: "50.0", kdj_d: "50.0", atr_14: "5.0", boll_upper: "190.0", boll_lower: "180.0", kdj_j: "50.0", cci_14: "0.0", wr_14: "-50.0", bias_60: "0.0", mfi_14: "50.0", trix_12: "0.0", vroc_20: "0.0", obv_slope_20: "0.0", vwap_bias_20: "0.0", psy_12: "50.0", natr_14: "2.5", cv_20: "0.01", ui_14: "0.0", amihud_illiq_20: "100.0", turnover_std_20: "0.5", aroon_osc_25: "0.0", chop_14: "50.0", force_13: "0.0", mass_25: "25.0"},
+                {trade_date: "1990-12-20", stock_code: "600601.SH", ma_5: "190.0", ma_20: "188.0", ma_60: "186.0", bias_20: "3.5", rsi_14: "65.0", macd_diff: 0.417, macd_dea: 0.231, kdj_k: "60.0", kdj_d: "55.0", atr_14: "5.2", boll_upper: "200.0", boll_lower: "182.0", kdj_j: "70.0", cci_14: "80.0", wr_14: "-30.0", bias_60: "4.5", mfi_14: "55.0", trix_12: 0.797, vroc_20: "5.0", obv_slope_20: "100.0", vwap_bias_20: "1.5", psy_12: "60.0", natr_14: "2.6", cv_20: "0.02", ui_14: "10.0", amihud_illiq_20: 195.3, turnover_std_20: "0.6", aroon_osc_25: "40.0", chop_14: "45.0", force_13: "500.0", mass_25: "24.8"},
+                {trade_date: "1990-12-21", stock_code: "600601.SH", ma_5: "195.0", ma_20: "192.0", ma_60: "188.0", bias_20: "6.0", rsi_14: "70.0", macd_diff: 0.650, macd_dea: 0.350, kdj_k: "75.0", kdj_d: "65.0", atr_14: "5.1", boll_upper: "208.0", boll_lower: "185.0", kdj_j: "85.0", cci_14: "110.0", wr_14: "-25.0", bias_60: "7.5", mfi_14: "58.0", trix_12: 0.820, vroc_20: "10.0", obv_slope_20: "150.0", vwap_bias_20: "2.0", psy_12: "65.0", natr_14: "2.7", cv_20: "0.03", ui_14: "15.0", amihud_illiq_20: 170.0, turnover_std_20: "0.7", aroon_osc_25: "60.0", chop_14: "42.0", force_13: "800.0", mass_25: "24.6"},
+                {trade_date: "1990-12-24", stock_code: "600601.SH", ma_5: "200.0", ma_20: "195.0", ma_60: "190.0", bias_20: "8.5", rsi_14: "70.5", macd_diff: 0.85, macd_dea: 0.45, kdj_k: "80.0", kdj_d: "75.0", atr_14: "5.0", boll_upper: "210.0", boll_lower: "180.0", kdj_j: "90.0", cci_14: "120.0", wr_14: "-20.0", bias_60: "9.0", mfi_14: "60.0", trix_12: 0.85, vroc_20: "12.0", obv_slope_20: "200.0", vwap_bias_20: "2.5", psy_12: "70.0", natr_14: "2.5", cv_20: "0.04", ui_14: "20.0", amihud_illiq_20: 150.0, turnover_std_20: "0.8", aroon_osc_25: "80.0", chop_14: "40.0", force_13: "1000.0", mass_25: "24.5"},
+                {trade_date: "1990-12-25", stock_code: "600601.SH", ma_5: "205.0", ma_20: "198.0", ma_60: "192.0", bias_20: "10.0", rsi_14: "75.0", macd_diff: 1.20, macd_dea: 0.70, kdj_k: "85.0", kdj_d: "80.0", atr_14: "4.8", boll_upper: "220.0", boll_lower: "190.0", kdj_j: "95.0", cci_14: "130.0", wr_14: "-15.0", bias_60: "11.0", mfi_14: "65.0", trix_12: 0.90, vroc_20: "15.0", obv_slope_20: "250.0", vwap_bias_20: "3.0", psy_12: "75.0", natr_14: "2.4", cv_20: "0.05", ui_14: "25.0", amihud_illiq_20: 140.0, turnover_std_20: "0.9", aroon_osc_25: "85.0", chop_14: "38.0", force_13: "1200.0", mass_25: "24.2"}
+            ],
+            "factor_value_daily": [
+                {trade_date: "1990-12-19", stock_code: "600601.SH", ln_market_cap: "23.0", ep_ttm: "0.015", bp_lr: "0.20", sp_ttm: "0.45", dividend_yield: "1.2", roe_ttm: "8.0", yoy_net_profit: "12.0", pe_zscore_60: "0.3", pb_zscore_60: "0.1"},
+                {trade_date: "1990-12-20", stock_code: "600601.SH", ln_market_cap: "23.2", ep_ttm: "0.018", bp_lr: "0.22", sp_ttm: "0.46", dividend_yield: "1.3", roe_ttm: "8.2", yoy_net_profit: "13.0", pe_zscore_60: "0.4", pb_zscore_60: "0.15"},
+                {trade_date: "1990-12-21", stock_code: "600601.SH", ln_market_cap: "23.4", ep_ttm: "0.019", bp_lr: "0.23", sp_ttm: "0.47", dividend_yield: "1.4", roe_ttm: "8.3", yoy_net_profit: "14.0", pe_zscore_60: "0.45", pb_zscore_60: "0.18"},
+                {trade_date: "1990-12-24", stock_code: "600601.SH", ln_market_cap: "23.5", ep_ttm: "0.020", bp_lr: "0.25", sp_ttm: "0.50", dividend_yield: "1.5", roe_ttm: "8.5", yoy_net_profit: "15.0", pe_zscore_60: "0.5", pb_zscore_60: "0.2"},
+                {trade_date: "1990-12-25", stock_code: "600601.SH", ln_market_cap: "23.6", ep_ttm: "0.021", bp_lr: "0.24", sp_ttm: "0.48", dividend_yield: "1.4", roe_ttm: "8.5", yoy_net_profit: "15.0", pe_zscore_60: "0.6", pb_zscore_60: "0.3"}
+            ],
+            "meta_alpha101_info": [
+                {alpha_id: "alpha_001", formula: "rank(ts_argmax(signedpower(((returns < 0) ? stddev(returns, 20) : close), 2.), 5)) - 0.5", description: "极值距离反转", category: "alpha101", created_at: "2026-01-30 21:36:35", critical_logic: "关注过去5天内“极端行情”发生的日期距离，越近反转概率越高。"},
+                {alpha_id: "alpha_002", formula: "-1 * correlation(rank(delta(log(volume), 2)), rank(((close - open) / open)), 6)", description: "量价背离", category: "alpha101", created_at: "2026-01-30 21:36:35", critical_logic: "成交量变化与日内涨幅的相关性，负相关意味着量价背离。"},
+                {alpha_id: "alpha_003", formula: "-1 * correlation(rank(open), rank(volume), 10)", description: "开盘量价相关", category: "alpha101", created_at: "2026-01-30 21:36:35", critical_logic: "高开低走或低开高走与成交量的关系。"},
+                {alpha_id: "alpha_004", formula: "-1 * ts_rank(rank(low), 9)", description: "低价排序", category: "alpha101", created_at: "2026-01-30 21:36:35", critical_logic: "近期最低价在历史中的相对位置。"},
+                {alpha_id: "alpha_005", formula: "rank((open - (sum(vwap, 10) / 10))) * (-1 * abs(rank((close - vwap))))", description: "开盘偏离均价", category: "alpha101", created_at: "2026-01-30 21:36:35", critical_logic: "开盘价相对于过去10天VWAP的偏离程度。"}
+            ],
+            "meta_factor_info": [
+                {factor_name: "is_limit_broken", category: "emotion", description: "是否炸板：1为曾涨停但未封住", formula: "Exist in kpl_limit_broken", creator: "System_ETL", created_at: "2026-01-31 17:24:48"},
+                {factor_name: "is_limit_up", category: "emotion", description: "是否涨停：1为涨停，0为未涨停", formula: "Exist in kpl_limit_up", creator: "System_ETL", created_at: "2026-01-31 17:24:48"},
+                {factor_name: "kpl_seal_money", category: "emotion", description: "封单金额：单位(元)", formula: "Direct from kpl_limit_up.seal_amt", creator: "System_ETL", created_at: "2026-01-31 17:24:48"},
+                {factor_name: "rsi_14", category: "technical", description: "相对强弱指标(14日)", formula: "talib.RSI(close, 14)", creator: "System_ETL", created_at: "2026-01-31 17:24:48"},
+                {factor_name: "macd_diff", category: "technical", description: "MACD快慢线差值", formula: "diff from talib.MACD", creator: "System_ETL", created_at: "2026-01-31 17:24:48"}
+            ],
+            "ticks": [
+                {code: "000001", trade_time: "2000-06-09 09:30:00", price: 18.89, volume: 317, direction: "买盘"},
+                {code: "000001", trade_time: "2000-06-09 09:30:03", price: 18.90, volume: 1032, direction: "买盘"},
+                {code: "000001", trade_time: "2000-06-09 09:30:06", price: 18.90, volume: 39, direction: "卖盘"},
+                {code: "000001", trade_time: "2000-06-09 09:30:09", price: 18.91, volume: 500, direction: "买盘"},
+                {code: "000001", trade_time: "2000-06-09 09:30:12", price: 18.88, volume: 200, direction: "卖盘"}
+            ]
+        };
+
+        // --- 核心数据库结构定义  ---
+        const DB_SCHEMA = {
+            "quant_db": {
+                name: "quant_db",
+                alias: "基础行情库",
+                desc: "全市场基础数据、板学情绪、基本面",
+                theme: "blue",
+                icon: <DatabaseZap size={40} />,
+                categories: [
+                    { id: "meta", name: "A1 元数据 (Meta)", match: "^meta_(stock|index|sector)" },
+                    { id: "market", name: "A2 市场行情 (Market)", match: "^market_" },
+                    { id: "emotion", name: "A3 板学/情绪 (KPL/REL)", match: "^(kpl_|rel_)" },
+                    { id: "fundamental", name: "A4 基本面 (Fundamental)", match: "^stock_fundamental" },
+                    { id: "rank", name: "A5 其它信息 (Rank)", match: "^rank_" }
+                ],
+                tables: Object.keys(REAL_DATA).filter(k => 
+                    !['meta_factor_info', 'meta_alpha101_info'].includes(k) &&
+                    (k.startsWith('kpl') || k.startsWith('market') || k.startsWith('meta') || k.startsWith('rank') || k.startsWith('rel') || k.startsWith('stock_fund'))
+                )
+            },
+            "factor_db": {
+                name: "factor_db",
+                alias: "因子特征库",
+                desc: "技术指标、动量、Alpha101、情绪因子",
+                theme: "yellow",
+                icon: <Activity size={40} />,
+                categories: [
+                    { id: "meta", name: "B1 因子元数据 (Meta)", match: "^meta_" },
+                    { id: "tech_mom", name: "B2 技术/动量/情绪/价值", match: "^factor_(momentum|technical|sentiment|value)" },
+                    { id: "alphas", name: "B3 Alpha101 因子", match: "^factor_alphas" },
+                    { id: "other", name: "其它", match: ".*" }
+                ],
+                tables: Object.keys(REAL_DATA).filter(k => k.startsWith('factor') || ['meta_factor_info', 'meta_alpha101_info'].includes(k))
+            },
+            "stock_3tick_db": {
+                name: "stock_3tick_db",
+                alias: "高频数据库",
+                desc: "Tick级全息数据，交易秒级细节",
+                theme: "red",
+                icon: <Clock size={40} />,
+                categories: [
+                    { id: "core", name: "C1 核心表", match: ".*" }
+                ],
+                tables: ["ticks"]
+            }
+        };
+
+        // --- Components ---
+
+        const ArrowSVG = ({ className, direction = "right" }) => {
+            const path = "M10,25 L190,25";
+            return (
+                <svg className={`absolute ${className}`} width="100%" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <path d={path} stroke="#9CA3AF" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
+                    <path d="M180,20 L190,25 L180,30" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+            );
+        };
+
+        const TableDetailView = ({ dbId, tableName, onBack }) => {
+            const db = DB_SCHEMA[dbId];
+            const tableData = REAL_DATA[tableName] || [];
+            const columns = tableData.length > 0 ? Object.keys(tableData[0]) : [];
+            const stats = DB_STATS[tableName] || { size: "-", rows: "-" };
+
+            return (
+                <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-3 mb-6">
+                        <button onClick={onBack} className="p-2 bg-white rounded-full shadow hover:bg-gray-50 text-gray-600 transition-colors">
+                            <ArrowLeft size={24} />
+                        </button>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h2 className={`text-2xl font-bold hand-font theme-${db.theme}-text`}>{tableName}</h2>
+                                <span className={`text-xs px-2 py-1 rounded theme-${db.theme}-badge font-mono border border-current opacity-70`}>
+                                    {stats.size} | {stats.rows} rows
+                                </span>
+                            </div>
+                            <p className="text-gray-500 text-sm">所属库: {db.name}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="flex border-b border-gray-100 p-4 bg-gray-50 justify-between items-center">
+                            <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                                <Database size={16} /> 虚拟数据预览 (Top 5 Rows)
+                            </h3>
+                            {columns.length > 10 && (
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                    <ArrowLeft size={12} /> 左右滑动查看更多字段 <ArrowLeft size={12} className="rotate-180"/>
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead className={`text-xs uppercase bg-${db.theme}-50 theme-${db.theme}-text sticky top-0`}>
+                                    <tr>
+                                        {columns.map(col => (
+                                            <th key={col} className="px-4 py-3 whitespace-nowrap border-b border-gray-200">{col}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tableData.map((row, i) => (
+                                        <tr key={i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                                            {columns.map(col => (
+                                                <td key={col} className="px-4 py-3 whitespace-nowrap text-gray-700 font-mono">
+                                                    {row[col] === null || row[col] === undefined ? '-' : row[col]}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {tableData.length === 0 && (
+                            <div className="p-8 text-center text-gray-400">暂无预览数据</div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const DatabaseView = ({ dbId, onBack, onSelectTable }) => {
+            const db = DB_SCHEMA[dbId];
+            const [searchTerm, setSearchTerm] = useState("");
+
+            const groupedTables = useMemo(() => {
+                const groups = {};
+                db.categories.forEach(cat => groups[cat.id] = { ...cat, tables: [] });
+
+                db.tables.forEach(tableName => {
+                    if (searchTerm && !tableName.toLowerCase().includes(searchTerm.toLowerCase())) return;
+                    
+                    let matched = false;
+                    for (const cat of db.categories) {
+                        if (new RegExp(cat.match).test(tableName)) {
+                            groups[cat.id].tables.push(tableName);
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched && db.categories.length > 0) {
+                        groups[db.categories[db.categories.length - 1].id].tables.push(tableName);
+                    }
+                });
+                return groups;
+            }, [db, searchTerm]);
+
+            return (
+                <div className="animate-fade-in">
+                     <div className="flex items-center gap-4 mb-8">
+                        <button onClick={onBack} className="p-2 bg-white rounded-full shadow hover:bg-gray-50 transition-colors">
+                            <ArrowLeft size={24} className="text-gray-600" />
+                        </button>
+                        <div className={`p-3 rounded-xl theme-${db.theme}-bg border theme-${db.theme}`}>
+                            {db.icon}
+                        </div>
+                        <div>
+                            <h1 className={`text-3xl font-bold hand-font theme-${db.theme}-text`}>{db.name}</h1>
+                            <p className="text-gray-500 text-lg">{db.alias}</p>
+                        </div>
+                        <div className="ml-auto relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="搜索表名..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 w-64"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Object.values(groupedTables).map(group => (
+                            group.tables.length > 0 && (
+                                <div key={group.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-dashed border-gray-300">
+                                    <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        <div className={`w-2 h-6 rounded-full theme-${db.theme}-bg theme-${db.theme} border`}></div>
+                                        {group.name}
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {group.tables.map(table => {
+                                            const stats = DB_STATS[table];
+                                            return (
+                                                <div 
+                                                    key={table}
+                                                    onClick={() => onSelectTable(table)}
+                                                    className="paper-card p-3 flex flex-col paper-btn group hover:bg-gray-50"
+                                                >
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText size={16} className={`text-gray-400 group-hover:theme-${db.theme}-text`} />
+                                                            <span className="font-mono text-sm text-gray-700 font-bold">{table}</span>
+                                                        </div>
+                                                        <ArrowLeft size={14} className="rotate-180 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    </div>
+                                                    {stats && (
+                                                        <div className="flex items-center gap-3 pl-6">
+                                                            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                                <HardDrive size={10} /> {stats.size}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                                {stats.rows} 行
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const Overview = ({ onSelectDb }) => {
+            return (
+                <div className="relative min-h-[600px] flex flex-col items-center justify-center py-10">
+                    <h1 className="text-4xl font-bold hand-font text-gray-800 mb-2">量化数据库概览</h1>
+                    <p className="text-gray-500 mb-12">ClickHouse Data Architecture Visualization, author: Wangrzwrz</p>
+
+                    {/* Main Flow Container: Horizontal Layout Red -> Blue -> Yellow */}
+                    <div className="flex flex-row items-center justify-center gap-4 w-full max-w-7xl relative z-10 px-4">
+                        
+                        {/* 1. Stock 3Tick DB (Left) */}
+                        <div className="flex-1 max-w-sm flex flex-col items-center">
+                            <div 
+                                onClick={() => onSelectDb('stock_3tick_db')}
+                                className="paper-card theme-red p-6 w-full h-80 flex flex-col items-center text-center cursor-pointer hover:bg-red-50 relative group"
+                            >
+                                <div className="absolute -top-4 -left-4 bg-red-200 text-red-800 px-3 py-1 rounded-lg transform -rotate-12 shadow text-sm font-bold">秒级</div>
+                                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4 border-4 border-red-200 group-hover:scale-110 transition-transform">
+                                    <Clock className="text-red-500" size={48} />
+                                </div>
+                                <h2 className="text-2xl font-bold text-red-600 mb-2 hand-font">stock_3tick</h2>
+                                <p className="text-sm text-gray-600 font-bold mb-4">(高频数据库)</p>
+                                <ul className="text-xs text-gray-500 space-y-1 text-left w-full pl-6 list-disc">
+                                    <li>C1 核心表: ticks</li>
+                                    <li>秒级交易明细</li>
+                                    <li>盘口快照</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* 2. Quant DB (Middle) */}
+                        <div className="flex-1 max-w-sm flex flex-col items-center">
+                            <div 
+                                onClick={() => onSelectDb('quant_db')}
+                                className="paper-card theme-blue p-6 w-full h-80 flex flex-col items-center text-center cursor-pointer hover:bg-blue-50 relative group"
+                            >
+                                <div className="absolute -top-4 bg-blue-200 text-blue-800 px-3 py-1 rounded-lg shadow text-sm font-bold">核心</div>
+                                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4 border-4 border-blue-200 group-hover:scale-110 transition-transform">
+                                    <DatabaseZap className="text-blue-500" size={48} />
+                                </div>
+                                <h2 className="text-2xl font-bold text-blue-600 mb-2 hand-font">quant_db</h2>
+                                <p className="text-sm text-gray-600 font-bold mb-4">(基础行情库)</p>
+                                <ul className="text-xs text-gray-500 space-y-1 text-left w-full pl-6 list-disc">
+                                    <li>A1 元数据 meta_*</li>
+                                    <li>A2 全市场行情</li>
+                                    <li>A3 板学与情绪</li>
+                                    <li>A4 基本面信息</li>
+                                    <li>A5 其它 rank_*</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* 3. Factor DB (Right) */}
+                        <div className="flex-1 max-w-sm flex flex-col items-center">
+                            <div 
+                                onClick={() => onSelectDb('factor_db')}
+                                className="paper-card theme-yellow p-6 w-full h-80 flex flex-col items-center text-center cursor-pointer hover:bg-yellow-50 relative group"
+                            >
+                                <div className="absolute -top-4 -right-4 bg-yellow-200 text-yellow-800 px-3 py-1 rounded-lg transform rotate-12 shadow text-sm font-bold">应用</div>
+                                <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4 border-4 border-yellow-200 group-hover:scale-110 transition-transform">
+                                    <Activity className="text-yellow-600" size={48} />
+                                </div>
+                                <h2 className="text-2xl font-bold text-yellow-600 mb-2 hand-font">factor_db</h2>
+                                <p className="text-sm text-gray-600 font-bold mb-4">(因子特征库)</p>
+                                <ul className="text-xs text-gray-500 space-y-1 text-left w-full pl-6 list-disc">
+                                    <li>B1 因子元数据</li>
+                                    <li>B2 技术/动量/情绪</li>
+                                    <li>B3 Alpha101 宽表</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const App = () => {
+            const [view, setView] = useState('overview'); // overview, database, table
+            const [selectedDb, setSelectedDb] = useState(null);
+            const [selectedTable, setSelectedTable] = useState(null);
+
+            const handleDbSelect = (dbId) => {
+                setSelectedDb(dbId);
+                setView('database');
+            };
+
+            const handleTableSelect = (tableName) => {
+                setSelectedTable(tableName);
+                setView('table');
+            };
+
+            const goHome = () => {
+                setView('overview');
+                setSelectedDb(null);
+                setSelectedTable(null);
+            };
+
+            const goBackToDb = () => {
+                setView('database');
+                setSelectedTable(null);
+            };
+
+            return (
+                <div className="min-h-screen px-4 py-6 max-w-7xl mx-auto">
+                    {/* Navigation Bar */}
+                    <nav className="flex items-center gap-2 text-sm text-gray-500 mb-4 px-2">
+                        <button onClick={goHome} className="hover:text-blue-600 font-medium">首页</button>
+                        {selectedDb && (
+                            <>
+                                <span>/</span>
+                                <button onClick={goBackToDb} className="hover:text-blue-600 font-medium">{DB_SCHEMA[selectedDb].name}</button>
+                            </>
+                        )}
+                        {selectedTable && (
+                            <>
+                                <span>/</span>
+                                <span className="text-gray-800 font-bold">{selectedTable}</span>
+                            </>
+                        )}
+                    </nav>
+
+                    {/* Main Content Area */}
+                    <main className="transition-all duration-300">
+                        {view === 'overview' && <Overview onSelectDb={handleDbSelect} />}
+                        {view === 'database' && <DatabaseView dbId={selectedDb} onBack={goHome} onSelectTable={handleTableSelect} />}
+                        {view === 'table' && <TableDetailView dbId={selectedDb} tableName={selectedTable} onBack={goBackToDb} />}
+                    </main>
+
+                    {/* Decoration Elements */}
+                    <div className="fixed top-10 left-10 w-16 h-16 bg-yellow-200 rounded-full opacity-20 -z-10 blur-xl"></div>
+                    <div className="fixed bottom-20 right-20 w-32 h-32 bg-blue-200 rounded-full opacity-20 -z-10 blur-2xl"></div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

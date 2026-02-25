@@ -1,0 +1,36 @@
+├── app
+│   ├── Quantlib                            # 量化前端平台
+│   │   ├── pages                           # 页面
+│   │   │   ├── 1_Market overview.py        # 市场全景
+│   │   │   ├── 2_Sentiment radar.py        # 市场情绪
+│   │   │   ├── 3_Smart screener.py         # 因子选股
+│   │   │   ├── 4_Stock deepdive.py         # 个股查询
+│   │   │   ├── 5_Alpha lab.py              # 因子看板
+│   │   │   └── 6_Sector rotation.py        # 板块信息
+│   │   ├── main.py                         # 主文件
+│   │   ├── QuantDB.py                      # 数据库交互文件
+│   │   └── utils.py                        # 辅助函数
+│   ├── structure.txt
+│   └── 量化前端平台可视化网页.html
+│
+├── database
+│   ├── ddl                                 # 三大数据库建表语句
+│   │   ├── factor_db_ddl.md                # 因子库建表语句
+│   │   ├── quant_db_ddl.md                 # 日线行情行情库建表语句
+│   │   └── stock_3tick_db_ddl.md           # 三秒极买卖盘数据库建表语句
+│   ├── functions                           # 因子计算函数
+│   │   ├── alpha101_engine.py              # worldquant 因子 python 计算函数引擎
+│   │   ├── alpha101_function.md            # alpha101因子信息
+│   │   └── basic factor_function.md        # 基础因子信息
+│   ├── database_schema.md                  # 三大数据库结构内容概览
+│   ├── database_schema.pdf
+│   ├── structure.txt
+│   ├── 数据库ETL工程展示.png
+│   ├── 数据库结构展示图.png
+│   └── 量化数据库可视化网页.html
+│
+├── Project report.md                         # 完整工程细节
+├── Project report.pdf
+├── README.md
+├── requirements.md                         # 依赖清单
+└── structure.txt
