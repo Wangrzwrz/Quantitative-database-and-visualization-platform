@@ -2,6 +2,7 @@
 - **Layer 1: quant_db** - 日线级标准化行情信息库。
 - **Layer 2: stock_3tick_db** - 三秒极买卖盘数据库。
 - **Layer 3: factor_db** - 量化因子特征库。
+- **New append** - 期货数据库
 
 ![数据库结构展示图](数据库结构展示图.png)
 
@@ -369,6 +370,130 @@ ORDER BY
 | `meta_alpha101_info` | `alpha_id`, `formula`, `description`... |  Alpha 101 定义详情 |
 | `meta_factor_info` | `factor_name`, `category`, `formula`... | 通用因子字典 |
 
+
+
+## 4.期货数据库
+
+### 4.1 数据库结构概览
+
+**执行查询：**
+
+```sql
+SELECT
+    `table`,
+    formatReadableSize(sum(data_compressed_bytes)) AS compressed,
+    formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed,
+    sum(rows) AS total_rows
+FROM system.parts
+WHERE (database = 'future_db') AND active
+GROUP BY `table`
+ORDER BY total_rows DESC
+```
+
+**查询结果：**
+
+```sql
+   ┌─table─────────────────────┬─compressed─┬─uncompressed─┬─total_rows─┐
+1. │ commodity_min1_actual     │ 6.00 GiB   │ 35.98 GiB    │  518545965 │
+2. │ commodity_min1_continuous │ 2.56 GiB   │ 10.54 GiB    │  122712555 │
+3. │ index_min1_continuous     │ 422.82 MiB │ 1.63 GiB     │   19149660 │
+4. │ index_min1_actual         │ 348.11 MiB │ 1.12 GiB     │   16076340 │
+   └───────────────────────────┴────────────┴──────────────┴────────────┘
+```
+
+
+### 4.2 数据库字段详细字典
+
+**执行查询：**
+
+```sql
+SELECT
+    `table`,
+    name,
+    type,
+    comment
+FROM system.columns
+WHERE database = 'future_db'
+ORDER BY
+    `table` ASC,
+    position ASC
+```
+
+**查询结果：**
+
+```sql
+    ┌─table─────────────────────┬─name──────────┬─type───────────────────┬─comment───────────────────────────┐
+ 1. │ commodity_min1_actual     │ market        │ LowCardinality(String) │ 市场代码, 如 DC, CZC, SHFE        │
+ 2. │ commodity_min1_actual     │ contract      │ String                 │ 合约代码, 如 a0501, rb2405        │
+ 3. │ commodity_min1_actual     │ datetime      │ DateTime               │ K线时间                           │
+ 4. │ commodity_min1_actual     │ open          │ Float64                │ 开盘价                            │
+ 5. │ commodity_min1_actual     │ high          │ Float64                │ 最高价                            │
+ 6. │ commodity_min1_actual     │ low           │ Float64                │ 最低价                            │
+ 7. │ commodity_min1_actual     │ close         │ Float64                │ 收盘价                            │
+ 8. │ commodity_min1_actual     │ volume        │ Float64                │ 成交量                            │
+ 9. │ commodity_min1_actual     │ amount        │ Float64                │ 成交额                            │
+10. │ commodity_min1_actual     │ open_interest │ Float64                │ 持仓量                            │
+11. │ commodity_min1_continuous │ market        │ LowCardinality(String) │ 市场代码                          │
+12. │ commodity_min1_continuous │ symbol        │ String                 │ 品种基础代码, 如 TF, m, rb        │
+13. │ commodity_min1_continuous │ contract_type │ String                 │ 连续类型, 如 主力连续, 次主力连续 │
+14. │ commodity_min1_continuous │ datetime      │ DateTime               │ K线时间                           │
+15. │ commodity_min1_continuous │ open          │ Float64                │ 开盘价                            │
+16. │ commodity_min1_continuous │ high          │ Float64                │ 最高价                            │
+17. │ commodity_min1_continuous │ low           │ Float64                │ 最低价                            │
+18. │ commodity_min1_continuous │ close         │ Float64                │ 收盘价                            │
+19. │ commodity_min1_continuous │ volume        │ Float64                │ 成交量                            │
+20. │ commodity_min1_continuous │ amount        │ Float64                │ 成交额                            │
+21. │ commodity_min1_continuous │ open_interest │ Float64                │ 持仓量                            │
+22. │ index_min1_actual         │ market        │ LowCardinality(String) │ 市场代码, 如 SF                   │
+23. │ index_min1_actual         │ contract      │ String                 │ 合约代码, 如 IF1005               │
+24. │ index_min1_actual         │ datetime      │ DateTime               │ K线时间                           │
+25. │ index_min1_actual         │ open          │ Float64                │ 开盘价                            │
+26. │ index_min1_actual         │ high          │ Float64                │ 最高价                            │
+27. │ index_min1_actual         │ low           │ Float64                │ 最低价                            │
+28. │ index_min1_actual         │ close         │ Float64                │ 收盘价                            │
+29. │ index_min1_actual         │ volume        │ Float64                │ 成交量                            │
+30. │ index_min1_actual         │ amount        │ Float64                │ 成交额                            │
+31. │ index_min1_actual         │ open_interest │ Float64                │ 持仓量                            │
+32. │ index_min1_continuous     │ market        │ LowCardinality(String) │ 市场代码                          │
+33. │ index_min1_continuous     │ symbol        │ String                 │ 品种基础代码, 如 IF, IC, IM       │
+34. │ index_min1_continuous     │ contract_type │ String                 │ 连续类型, 如 当季连续, 下季连续   │
+35. │ index_min1_continuous     │ datetime      │ DateTime               │ K线时间                           │
+36. │ index_min1_continuous     │ open          │ Float64                │ 开盘价                            │
+37. │ index_min1_continuous     │ high          │ Float64                │ 最高价                            │
+38. │ index_min1_continuous     │ low           │ Float64                │ 最低价                            │
+39. │ index_min1_continuous     │ close         │ Float64                │ 收盘价                            │
+40. │ index_min1_continuous     │ volume        │ Float64                │ 成交量                            │
+41. │ index_min1_continuous     │ amount        │ Float64                │ 成交额                            │
+42. │ index_min1_continuous     │ open_interest │ Float64                │ 持仓量                            │
+    └───────────────────────────┴───────────────┴────────────────────────┴───────────────────────────────────┘
+```
+
+
+### 2.3 数据分区情况
+
+**执行查询：**
+
+```sql
+SELECT
+    name AS table_name,
+    partition_key,
+    sorting_key,
+    total_rows,
+    storage_policy
+FROM system.tables
+WHERE database = 'future_db'
+```
+
+**查询结果：**
+
+```sql
+   ┌─table_name────────────────┬─partition_key──────┬─sorting_key─────────────────────┬─total_rows─┬─storage_policy─┐
+1. │ commodity_min1_actual     │ toYYYYMM(datetime) │ contract, datetime              │  518545965 │ default        │
+2. │ commodity_min1_continuous │ toYYYYMM(datetime) │ symbol, contract_type, datetime │  122712555 │ default        │
+3. │ index_min1_actual         │ toYYYYMM(datetime) │ contract, datetime              │   16076340 │ default        │
+4. │ index_min1_continuous     │ toYYYYMM(datetime) │ symbol, contract_type, datetime │   19149660 │ default        │
+   └───────────────────────────┴────────────────────┴─────────────────────────────────┴────────────┴────────────────┘
+```
 
 
 
